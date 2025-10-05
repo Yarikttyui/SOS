@@ -1,35 +1,24 @@
-# Скрипт быстрого запуска Frontend
+# Запуск Frontend сервера
 # Использование: .\start-frontend.ps1
 
-Write-Host "🚀 Запуск Rescue System Frontend..." -ForegroundColor Green
+Write-Host "🚀 Запуск Frontend..." -ForegroundColor Green
 Write-Host ""
-
-# Проверка Node.js
-if (!(Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ Node.js не найден! Установите Node.js 18+" -ForegroundColor Red
-    exit 1
-}
 
 # Переход в директорию frontend
 Set-Location -Path "$PSScriptRoot\frontend"
 
 # Проверка node_modules
 if (!(Test-Path ".\node_modules")) {
-    Write-Host "📦 Установка зависимостей..." -ForegroundColor Yellow
-    npm install
-}
-
-# Проверка .env файла
-if (!(Test-Path ".env.local")) {
-    Write-Host "⚙️ Создание .env.local файла..." -ForegroundColor Yellow
-    Copy-Item ".env.example" ".env.local"
+    Write-Host "❌ Зависимости не установлены!" -ForegroundColor Red
+    Write-Host "   Установите их: npm install" -ForegroundColor Yellow
+    exit 1
 }
 
 # Запуск dev сервера
 Write-Host ""
-Write-Host "✅ Frontend запускается на http://localhost:3000" -ForegroundColor Green
+Write-Host "✅ Frontend запущен: http://localhost:3001" -ForegroundColor Green
 Write-Host ""
-Write-Host "Для остановки нажмите Ctrl+C" -ForegroundColor Yellow
+Write-Host "Ctrl+C для остановки" -ForegroundColor Yellow
 Write-Host ""
 
 npm run dev

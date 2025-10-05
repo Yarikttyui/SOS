@@ -1,32 +1,28 @@
-# Full System Startup Script
-# Usage: .\start-all.ps1
+# Полный запуск системы SOS Rescue
+# Использование: .\start-all.ps1
 
-Write-Host "Starting Rescue System..." -ForegroundColor Green
+Write-Host "🚀 Запуск SOS Rescue System..." -ForegroundColor Green
 Write-Host ""
 
-# Start Docker services (PostgreSQL, Redis)
-Write-Host "Starting Docker services..." -ForegroundColor Cyan
-docker-compose up -d postgres redis
-
-Start-Sleep -Seconds 5
-
-# Start Backend in new window
-Write-Host "Starting Backend..." -ForegroundColor Yellow
+# Запуск Backend в новом окне
+Write-Host "📡 Запуск Backend..." -ForegroundColor Yellow
 $backendScript = Join-Path $PSScriptRoot "start-backend.ps1"
 Start-Process powershell -ArgumentList "-NoExit", "-File", $backendScript
 
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 5
 
-# Start Frontend in new window
-Write-Host "Starting Frontend..." -ForegroundColor Yellow
+# Запуск Frontend в новом окне
+Write-Host "🌐 Запуск Frontend..." -ForegroundColor Yellow
 $frontendScript = Join-Path $PSScriptRoot "start-frontend.ps1"
 Start-Process powershell -ArgumentList "-NoExit", "-File", $frontendScript
 
 Write-Host ""
-Write-Host "System is starting!" -ForegroundColor Green
+Write-Host "✅ Система запускается!" -ForegroundColor Green
 Write-Host ""
-Write-Host "Backend: http://localhost:8000" -ForegroundColor Cyan
-Write-Host "Frontend: http://localhost:3000" -ForegroundColor Cyan
-Write-Host "API Docs: http://localhost:8000/docs" -ForegroundColor Cyan
+Write-Host "🔗 Ссылки:" -ForegroundColor Cyan
+Write-Host "  Backend API:  http://localhost:8000" -ForegroundColor White
+Write-Host "  Frontend:     http://localhost:3001" -ForegroundColor White
+Write-Host "  API Docs:     http://localhost:8000/docs" -ForegroundColor White
 Write-Host ""
-Write-Host "To stop: close all PowerShell windows" -ForegroundColor Yellow
+Write-Host "ℹ️  Для остановки закройте окна PowerShell" -ForegroundColor Yellow
+Write-Host ""
