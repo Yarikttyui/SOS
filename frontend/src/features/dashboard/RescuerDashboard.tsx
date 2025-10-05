@@ -9,7 +9,6 @@ import {
   Navigation,
   LogOut,
   RefreshCw,
-  Phone,
   Users,
   Flame,
   Heart,
@@ -21,8 +20,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Award,
-  PlayCircle,
-  XCircle
+  PlayCircle
 } from 'lucide-react'
 import type { SOSAlert, RescueTeam } from '../../types'
 
