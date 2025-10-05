@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     
-    DATABASE_URL: str = "postgresql://rescue_user:rescue_pass_2024_secure@localhost:5432/rescue_db"
+    DATABASE_URL: str = "mysql+pymysql://rescue_user:rescue_pass_2024_secure@localhost:3306/rescue_db?charset=utf8mb4"
     
     REDIS_URL: str = "redis://:rescue_redis_pass@localhost:6379/0"
     

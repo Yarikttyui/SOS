@@ -1,18 +1,24 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: rescue_postgres
+  mysql:
+    image: mysql:8.4
+    container_name: rescue_mysql
     environment:
-      POSTGRES_USER: rescue_user
-      POSTGRES_PASSWORD: rescue_pass_2024_secure
-      POSTGRES_DB: rescue_db
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ru_RU.UTF-8"
+      MYSQL_ROOT_PASSWORD: rescue_root_pass_2024_secure
+      MYSQL_DATABASE: rescue_db
+      MYSQL_USER: rescue_user
+      MYSQL_PASSWORD: rescue_pass_2024_secure
+    command: [
+      "mysqld",
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci",
+      "--default-authentication-plugin=mysql_native_password"
+    ]
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rescue_user -d rescue_db"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,13 +49,13 @@ services:
     env_file:
       - ../../backend/.env.production
     environment:
-      DATABASE_URL: postgresql://rescue_user:rescue_pass_2024_secure@postgres:5432/rescue_db
+      DATABASE_URL: mysql+pymysql://rescue_user:rescue_pass_2024_secure@mysql:3306/rescue_db?charset=utf8mb4
       REDIS_URL: redis://:rescue_redis_pass@redis:6379/0
     volumes:
       - ../../backend/uploads:/app/uploads
       - backend_logs:/app/logs
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -66,12 +72,12 @@ services:
     env_file:
       - ../../backend/.env.production
     environment:
-      DATABASE_URL: postgresql://rescue_user:rescue_pass_2024_secure@postgres:5432/rescue_db
+      DATABASE_URL: mysql+pymysql://rescue_user:rescue_pass_2024_secure@mysql:3306/rescue_db?charset=utf8mb4
       REDIS_URL: redis://:rescue_redis_pass@redis:6379/0
     volumes:
       - ../../backend:/app
     depends_on:
-      - postgres
+      - mysql
       - redis
     networks:
       - rescue_network
@@ -94,7 +100,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  mysql_data:
   redis_data:
   backend_logs:
 
