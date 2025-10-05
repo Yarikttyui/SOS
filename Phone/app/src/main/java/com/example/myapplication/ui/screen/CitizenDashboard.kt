@@ -375,30 +375,94 @@ fun CitizenDashboard(
             },
             text = {
                 Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Type Selector
                     Text("Тип ситуации:", fontWeight = FontWeight.Medium)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    
+                    // Emergency Types Grid
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FilterChip(
-                            selected = alertType == "medical",
-                            onClick = { alertType = "medical" },
-                            label = { Text("🚑 Медицина") }
-                        )
-                        FilterChip(
-                            selected = alertType == "fire",
-                            onClick = { alertType = "fire" },
-                            label = { Text("🔥 Пожар") }
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = alertType == "medical",
+                                onClick = { alertType = "medical" },
+                                label = { Text("🚑 Медицина", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = alertType == "fire",
+                                onClick = { alertType = "fire" },
+                                label = { Text("🔥 Пожар", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = alertType == "police",
+                                onClick = { alertType = "police" },
+                                label = { Text("👮 Полиция", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = alertType == "water_rescue",
+                                onClick = { alertType = "water_rescue" },
+                                label = { Text("🌊 На воде", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = alertType == "mountain_rescue",
+                                onClick = { alertType = "mountain_rescue" },
+                                label = { Text("⛰️ Горы", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = alertType == "search_rescue",
+                                onClick = { alertType = "search_rescue" },
+                                label = { Text("🔍 Поиск", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = alertType == "ecological",
+                                onClick = { alertType = "ecological" },
+                                label = { Text("☢️ Экология", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = alertType == "general",
+                                onClick = { alertType = "general" },
+                                label = { Text("⚠️ Общая", fontSize = 12.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                     
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("Заголовок") },
+                        placeholder = { Text("Краткое описание") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -407,6 +471,7 @@ fun CitizenDashboard(
                         value = description,
                         onValueChange = { description = it },
                         label = { Text("Описание") },
+                        placeholder = { Text("Подробности о ситуации...") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
                         maxLines = 5
