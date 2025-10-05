@@ -1,7 +1,7 @@
 """
 Rescue Team model
 """
-from sqlalchemy import Column, String, Enum as SQLEnum, JSON, DECIMAL, DateTime
+from sqlalchemy import Column, String, Enum as SQLEnum, JSON, DECIMAL, DateTime, Integer
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
@@ -44,6 +44,7 @@ class RescueTeam(Base):
     members = Column(JSON)  # List of member IDs and roles
     leader_id = Column(String(36), nullable=True)  # Team leader user ID
     leader_name = Column(String(255), nullable=True)
+    member_count = Column(Integer, default=0)
     equipment = Column(JSON)  # List of available equipment
     contact_phone = Column(String(20))
     contact_email = Column(String(255))
