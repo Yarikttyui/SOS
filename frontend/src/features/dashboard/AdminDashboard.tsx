@@ -54,17 +54,52 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const [statsRes, usersRes, alertsRes, responseRes] = await Promise.all([
-        api.get('/api/v1/stats/system'),
-        api.get('/api/v1/users'),
-        api.get('/api/v1/sos/recent?limit=20'),
-        api.get('/api/v1/stats/response-time')
-      ])
       
-      setStats(statsRes.data)
-      setUsers(usersRes.data)
-      setAlerts(alertsRes.data)
-      setResponseTime(responseRes.data)
+      // Fetch stats (используем правильный эндпоинт)
+      try {
+        const statsRes = await api.get('/api/v1/analytics/dashboard')
+        setStats(statsRes.data)
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+        // Установим пустую статистику при ошибке
+        setStats({
+          total_alerts: 0,
+          active_alerts: 0,
+          today_alerts: 0,
+          by_status: {},
+          by_type: {}
+        })
+      }
+      
+      // Fetch users
+      try {
+        const usersRes = await api.get('/api/v1/users')
+        setUsers(Array.isArray(usersRes.data) ? usersRes.data : [])
+      } catch (error) {
+        console.error('Failed to fetch users:', error)
+        setUsers([])
+      }
+      
+      // Fetch alerts (получаем список всех тревог для админа)
+      try {
+        const alertsRes = await api.get('/api/v1/sos/', {
+          params: { limit: 20 }
+        })
+        // Эндпоинт возвращает массив напрямую
+        setAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : [])
+      } catch (error) {
+        console.error('Failed to fetch alerts:', error)
+        setAlerts([])
+      }
+      
+      // Fetch response time
+      try {
+        const responseRes = await api.get('/api/v1/analytics/reports/response-time')
+        setResponseTime(responseRes.data)
+      } catch (error) {
+        console.error('Failed to fetch response time:', error)
+        setResponseTime({ average_response_time_minutes: 0 })
+      }
     } catch (error) {
       console.error('Failed to fetch admin data:', error)
     } finally {
@@ -370,31 +405,51 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {users.map((u) => (
-                        <tr key={u.id} className="hover:bg-purple-50 transition-colors">
-                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{u.email}</td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{u.full_name || '-'}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-4 py-2 rounded-xl text-xs font-bold ${getRoleColor(u.role)} shadow-md`}>
-                              {u.role}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{formatDate(u.created_at)}</td>
-                          <td className="px-6 py-4">
-                            <select
-                              value={u.role}
-                              onChange={(e) => handleChangeUserRole(u.id, e.target.value)}
-                              className="px-4 py-2 border-2 border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:border-purple-400 transition-colors"
-                            >
-                              <option value="citizen">Гражданин</option>
-                              <option value="rescuer">Спасатель</option>
-                              <option value="operator">Оператор</option>
-                              <option value="coordinator">Координатор</option>
-                              <option value="admin">Админ</option>
-                            </select>
+                      {loading ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-3">
+                              <RefreshCw className="w-8 h-8 animate-spin text-purple-600" />
+                              <span className="font-medium">Загрузка данных...</span>
+                            </div>
                           </td>
                         </tr>
-                      ))}
+                      ) : users.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-3">
+                              <Users className="w-12 h-12 text-gray-400" />
+                              <span className="font-medium">Нет пользователей в системе</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        users.map((u) => (
+                          <tr key={u.id} className="hover:bg-purple-50 transition-colors">
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{u.email}</td>
+                            <td className="px-6 py-4 text-sm text-gray-900">{u.full_name || '-'}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-4 py-2 rounded-xl text-xs font-bold ${getRoleColor(u.role)} shadow-md`}>
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{formatDate(u.created_at)}</td>
+                            <td className="px-6 py-4">
+                              <select
+                                value={u.role}
+                                onChange={(e) => handleChangeUserRole(u.id, e.target.value)}
+                                className="px-4 py-2 border-2 border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:border-purple-400 transition-colors"
+                              >
+                                <option value="citizen">Гражданин</option>
+                                <option value="rescuer">Спасатель</option>
+                                <option value="operator">Оператор</option>
+                                <option value="coordinator">Координатор</option>
+                                <option value="admin">Админ</option>
+                              </select>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -408,35 +463,47 @@ export default function AdminDashboard() {
                   <AlertCircle className="w-7 h-7 text-purple-600" />
                   Последние тревоги
                 </h3>
-                <div className="space-y-4">
-                  {alerts.map((alert) => (
-                    <div key={alert.id} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-purple-300 hover:shadow-lg transition-all">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-3">
-                            <div className="bg-gradient-to-br from-purple-100 to-pink-100 p-3 rounded-xl">
-                              {getTypeIcon(alert.type)}
+                {loading ? (
+                  <div className="flex flex-col items-center gap-3 py-12">
+                    <RefreshCw className="w-12 h-12 animate-spin text-purple-600" />
+                    <span className="font-medium text-gray-500">Загрузка тревог...</span>
+                  </div>
+                ) : alerts.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 py-12 bg-white rounded-xl border-2 border-gray-200">
+                    <AlertCircle className="w-16 h-16 text-gray-400" />
+                    <span className="font-medium text-gray-500">Нет тревог в системе</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {alerts.map((alert) => (
+                      <div key={alert.id} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-purple-300 hover:shadow-lg transition-all">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-4 mb-3">
+                              <div className="bg-gradient-to-br from-purple-100 to-pink-100 p-3 rounded-xl">
+                                {getTypeIcon(alert.type)}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-bold text-gray-900 text-lg">
+                                  {alert.title || `Тревога: ${getTypeLabel(alert.type)}`}
+                                </h4>
+                                <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-bold mt-1 ${getStatusColor(alert.status)}`}>
+                                  {alert.status}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <h4 className="font-bold text-gray-900 text-lg">
-                                {alert.title || `Тревога: ${getTypeLabel(alert.type)}`}
-                              </h4>
-                              <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-bold mt-1 ${getStatusColor(alert.status)}`}>
-                                {alert.status}
-                              </span>
+                            <p className="text-sm text-gray-700 mb-3 ml-16">{alert.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500 ml-16">
+                              <span className="font-medium">Приоритет: <span className="text-purple-600">{alert.priority}</span></span>
+                              <span>•</span>
+                              <span>{formatDateTime(alert.created_at)}</span>
                             </div>
-                          </div>
-                          <p className="text-sm text-gray-700 mb-3 ml-16">{alert.description}</p>
-                          <div className="flex items-center gap-4 text-xs text-gray-500 ml-16">
-                            <span className="font-medium">Приоритет: <span className="text-purple-600">{alert.priority}</span></span>
-                            <span>•</span>
-                            <span>{formatDateTime(alert.created_at)}</span>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
