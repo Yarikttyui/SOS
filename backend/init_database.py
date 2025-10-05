@@ -173,6 +173,7 @@ def create_users(db: Session):
         existing_user = db.query(User).filter(User.email == user_data["email"]).first()
         if existing_user:
             print(f"  • Пользователь уже существует, пропускаем: {existing_user.full_name} ({existing_user.email})")
+            created_users[existing_user.email] = existing_user
             continue
 
         password = user_data.pop("password")
