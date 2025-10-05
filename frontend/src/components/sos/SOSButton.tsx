@@ -32,6 +32,7 @@ export default function SOSButton() {
   const { latitude, longitude, getLocation, isLoading: locationLoading } = useGeolocation()
 
   const handleSOSClick = () => {
+    console.log('🆘 SOS Button clicked!')
     setShowModal(true)
     setError(null)
     getLocation()
@@ -131,12 +132,20 @@ export default function SOSButton() {
   return (
     <>
       {/* SOS Button */}
-      <div className="relative">
+      <div className="relative inline-block">
+        {/* Pulse rings animation - behind button */}
+        {!isEmergency && (
+          <>
+            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10"></div>
+            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10" style={{ animationDelay: '1s' }}></div>
+          </>
+        )}
+        
         <button
           onClick={handleSOSClick}
           disabled={isEmergency}
           className={`
-            relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full text-white font-bold
+            relative z-10 w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full text-white font-bold
             transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-4
             disabled:cursor-not-allowed
             ${isEmergency 
@@ -158,14 +167,6 @@ export default function SOSButton() {
             </div>
           )}
         </button>
-        
-        {/* Pulse rings animation */}
-        {!isEmergency && (
-          <>
-            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75"></div>
-            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75" style={{ animationDelay: '1s' }}></div>
-          </>
-        )}
       </div>
 
       {/* Emergency Modal */}

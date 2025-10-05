@@ -79,11 +79,11 @@
 @layer components {
   /* Glass Card Effect */
   .glass-card {
-    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-soft;
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
   }
 
   .glass-card-dark {
-    @apply bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 shadow-soft;
+    @apply bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 shadow-2xl;
   }
 
   /* Gradient Backgrounds */
@@ -132,7 +132,7 @@
 
   /* Card Styles */
   .card-modern {
-    @apply bg-white rounded-2xl shadow-medium hover:shadow-lg 
+    @apply bg-white rounded-2xl shadow-lg hover:shadow-xl 
            transition-all duration-300 overflow-hidden border border-gray-100;
   }
 
@@ -153,9 +153,52 @@
   }
 }
 
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
 .sos-button {
   animation: sos-pulse 2s infinite;
   box-shadow: 0 10px 40px rgba(239, 68, 68, 0.4);
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Shimmer Loading Effect */

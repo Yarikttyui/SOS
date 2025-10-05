@@ -36,6 +36,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var alertSoundManager: AlertSoundManager
     internal lateinit var locationManager: LocationManager
     
+    // Store current location at class level
+    var currentLocation: Pair<Double, Double>? = null
+    
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
