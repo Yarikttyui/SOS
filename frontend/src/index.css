@@ -149,6 +149,20 @@
   }
 }
 
+@layer utilities {
+  .animate-delay-100 {
+    animation-delay: 0.1s;
+  }
+
+  .animate-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animate-delay-300 {
+    animation-delay: 0.3s;
+  }
+}
+
 /* SOS Button Animation */
 @keyframes sos-pulse {
   0%, 100% {

@@ -46,7 +46,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form Card */}
-        <div className="glass-card rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-2xl bg-white/95 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+  <div className="glass-card rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-2xl bg-white/95 animate-slide-up animate-delay-100">
           
           {error && (
             <div className="mb-6 bg-red-50 border-2 border-red-200 text-red-800 px-4 py-3 rounded-2xl flex items-center gap-3 animate-fade-in">
@@ -121,7 +121,7 @@ export default function LoginPage() {
         </div>
 
         {/* Features */}
-        <div className="grid grid-cols-3 gap-4 mt-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+  <div className="grid grid-cols-3 gap-4 mt-8 animate-slide-up animate-delay-200">
           <div className="glass-card bg-white/20 backdrop-blur-md p-4 rounded-2xl text-center text-white border border-white/30">
             <Shield className="w-6 h-6 mx-auto mb-2" />
             <p className="text-xs font-medium">Безопасно</p>
@@ -137,7 +137,7 @@ export default function LoginPage() {
         </div>
 
         {/* Emergency Notice */}
-        <div className="mt-6 text-center glass-card bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+  <div className="mt-6 text-center glass-card bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 animate-slide-up animate-delay-300">
           <p className="text-white/90 text-sm font-medium">
             ⚠️ При чрезвычайной ситуации звоните <span className="font-bold">112</span>
           </p>
