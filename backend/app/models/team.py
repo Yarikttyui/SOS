@@ -43,6 +43,7 @@ class RescueTeam(Base):
     
     members = Column(JSON)  # List of member IDs and roles
     leader_id = Column(String(36), nullable=True)  # Team leader user ID
+    leader_name = Column(String(255), nullable=True)
     equipment = Column(JSON)  # List of available equipment
     contact_phone = Column(String(20))
     contact_email = Column(String(255))
