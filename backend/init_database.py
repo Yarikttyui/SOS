@@ -170,6 +170,11 @@ def create_users(db: Session):
     created_users = {}
     
     for user_data in users_data:
+        existing_user = db.query(User).filter(User.email == user_data["email"]).first()
+        if existing_user:
+            print(f"  • Пользователь уже существует, пропускаем: {existing_user.full_name} ({existing_user.email})")
+            continue
+
         password = user_data.pop("password")
         specialization = user_data.pop("specialization", None)
         is_team_leader = user_data.pop("is_team_leader", False)
