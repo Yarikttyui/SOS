@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: rescue_postgres
+    environment:
+      POSTGRES_USER: rescue_user
+      POSTGRES_PASSWORD: rescue_pass_2024_secure
+      POSTGRES_DB: rescue_db
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ru_RU.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rescue_user -d rescue_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rescue_network
+    restart: unless-stopped
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: rescue_redis
+    command: redis-server --appendonly yes --requirepass rescue_redis_pass
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - rescue_network
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rescue_backend
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://rescue_user:rescue_pass_2024_secure@postgres:5432/rescue_db
+      - REDIS_URL=redis://:rescue_redis_pass@redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rescue_network
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker (фоновые задачи)
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rescue_celery_worker
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://rescue_user:rescue_pass_2024_secure@postgres:5432/rescue_db
+      - REDIS_URL=redis://:rescue_redis_pass@redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - rescue_network
+    restart: unless-stopped
+    command: celery -A app.core.celery_app worker --loglevel=info
+
+  # Frontend Web App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rescue_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000
+      - VITE_MAPBOX_TOKEN=pk.eyJ1IjoicmVzY3VlLXN5c3RlbSIsImEiOiJjbHh4eHh4eHgifQ.xxxx
+    depends_on:
+      - backend
+    networks:
+      - rescue_network
+    restart: unless-stopped
+    command: npm run dev -- --host 0.0.0.0
+
+  # Nginx Reverse Proxy (production)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: rescue_nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+  #     - ./docker/nginx/ssl:/etc/nginx/ssl
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   networks:
+  #     - rescue_network
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  rescue_network:
+    driver: bridge
