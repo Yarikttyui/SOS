@@ -3,23 +3,42 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { AlertCircle } from 'lucide-react'
 
+interface RegisterForm {
+  email: string
+  password: string
+  full_name: string
+  phone: string
+}
+
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register, isLoading, error, clearError } = useAuthStore()
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterForm>({
     email: '',
     password: '',
     full_name: '',
     phone: '',
   })
 
+  const handleChange = (field: keyof RegisterForm) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (error) {
+      clearError()
+    }
+    setFormData((prev) => ({ ...prev, [field]: event.target.value }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     clearError()
     
     try {
-      await register(formData)
+      await register({
+        ...formData,
+        email: formData.email.trim(),
+        full_name: formData.full_name.trim(),
+        phone: formData.phone.trim(),
+      })
       navigate('/')
     } catch (err) {
     }
@@ -36,63 +55,76 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2" role="alert">
+            <AlertCircle className="w-5 h-5" aria-hidden="true" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-2">
               Email *
             </label>
             <input
+              id="register-email"
               type="email"
               required
+              autoComplete="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={handleChange('email')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="name@example.com"
+              aria-required="true"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="register-full-name" className="block text-sm font-medium text-gray-700 mb-2">
               Полное имя
             </label>
             <input
+              id="register-full-name"
               type="text"
               value={formData.full_name}
-              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              onChange={handleChange('full_name')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="Иван Иванов"
+              autoComplete="name"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="register-phone" className="block text-sm font-medium text-gray-700 mb-2">
               Телефон
             </label>
             <input
+              id="register-phone"
               type="tel"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={handleChange('phone')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               placeholder="+7 (999) 999-99-99"
+              autoComplete="tel"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-2">
               Пароль * (8-72 символа)
             </label>
             <input
+              id="register-password"
               type="password"
               required
               minLength={8}
               maxLength={72}
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={handleChange('password')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="Введите надёжный пароль"
+              autoComplete="new-password"
+              aria-required="true"
             />
           </div>
 

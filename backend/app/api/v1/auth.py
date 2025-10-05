@@ -1,14 +1,15 @@
 """
 Authentication endpoints
 """
+import re
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from datetime import timedelta
 
 from app.core.database import get_db
-from app.core.config import settings
 from app.core.security import (
     verify_password,
     get_password_hash,
@@ -48,6 +49,19 @@ def get_user_with_team(user: User, db: Session) -> dict:
     }
 
 
+def _normalize_email(value: str) -> str:
+    """Normalize email for consistent comparisons."""
+    return value.strip().lower()
+
+
+def _normalize_phone(value: Optional[str]) -> Optional[str]:
+    """Normalize phone by removing spaces and separator characters."""
+    if not value:
+        return None
+    cleaned = re.sub(r"[\s()\-]", "", value).strip()
+    return cleaned or None
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
@@ -85,19 +99,17 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     Note: All new users are registered as citizens. 
     Admins can later change roles through user management.
     """
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    normalized_email = _normalize_email(user_data.email)
+    existing_user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
     
-    normalized_phone = user_data.phone.strip() if user_data.phone else None
-    if normalized_phone == "":
-        normalized_phone = None
+    normalized_phone = _normalize_phone(user_data.phone)
 
     if normalized_phone:
-        normalized_phone = normalized_phone.replace(" ", "")
         phone_exists = db.query(User).filter(User.phone == normalized_phone).first()
         if phone_exists:
             raise HTTPException(
@@ -107,10 +119,10 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
-        email=user_data.email,
+        email=normalized_email,
         hashed_password=hashed_password,
         phone=normalized_phone,
-        full_name=user_data.full_name,
+        full_name=user_data.full_name.strip() if user_data.full_name else None,
         role=UserRole.CITIZEN  # Always CITIZEN for registration
     )
     
@@ -147,7 +159,8 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     
     Returns access and refresh tokens
     """
-    user = db.query(User).filter(User.email == login_data.email).first()
+    normalized_email = _normalize_email(login_data.email)
+    user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -179,7 +192,8 @@ async def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
     
     Returns access and refresh tokens
     """
-    user = db.query(User).filter(User.email == form_data.username).first()
+    normalized_email = _normalize_email(form_data.username)
+    user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

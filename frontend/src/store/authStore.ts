@@ -1,7 +1,23 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User, LoginRequest, TokenResponse } from '../types'
+import type { User, LoginRequest, RegisterRequest, TokenResponse } from '../types'
 import api from '../services/api'
+
+const normalizeEmail = (value: string) => value.trim().toLowerCase()
+const normalizeOptional = (value?: string | null) => {
+  if (!value) {
+    return undefined
+  }
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+const normalizePhone = (value?: string | null) => {
+  const trimmed = normalizeOptional(value)
+  if (!trimmed) {
+    return undefined
+  }
+  return trimmed.replace(/[\s()\-]/g, '')
+}
 
 interface AuthState {
   user: User | null
@@ -10,7 +26,7 @@ interface AuthState {
   error: string | null
   
   login: (credentials: LoginRequest) => Promise<void>
-  register: (data: any) => Promise<void>
+  register: (data: RegisterRequest) => Promise<void>
   logout: () => void
   fetchCurrentUser: () => Promise<void>
   clearError: () => void
@@ -28,7 +44,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null })
         try {
           const response = await api.post<TokenResponse>('/api/v1/auth/login', {
-            email: credentials.email,
+            email: normalizeEmail(credentials.email),
             password: credentials.password,
           })
 
@@ -51,13 +67,20 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (data: any) => {
+      register: async (data: RegisterRequest) => {
         set({ isLoading: true, error: null })
         try {
-          await api.post('/api/v1/auth/register', data)
-          
+          const payload: RegisterRequest = {
+            email: normalizeEmail(data.email),
+            password: data.password,
+            full_name: normalizeOptional(data.full_name),
+            phone: normalizePhone(data.phone),
+          }
+
+          await api.post('/api/v1/auth/register', payload)
+
           await get().login({
-            email: data.email,
+            email: payload.email,
             password: data.password,
           })
         } catch (error: any) {
