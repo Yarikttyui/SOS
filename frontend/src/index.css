@@ -91,12 +91,20 @@
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   }
 
+  .bg-gradient-emergency {
+    background: radial-gradient(circle at center, #ff4d4d 0%, #ff2d2d 50%, #ef233c 75%, #c1121f 100%);
+  }
+
   .gradient-primary {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   }
 
   .gradient-success {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  .bg-gradient-success {
+    background: radial-gradient(circle at center, #bbf7d0 0%, #34d399 50%, #059669 85%, #047857 100%);
   }
 
   .gradient-hero {

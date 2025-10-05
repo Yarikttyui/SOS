@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { AlertCircle, MapPin, Mic, Sparkles, CheckCircle, AlertTriangle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertCircle, MapPin, Mic, Sparkles, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { api } from '../../services/api'
 import type { EmergencyType } from '../../types'
@@ -18,6 +18,11 @@ interface AIAnalysis {
   error?: string
 }
 
+const FALLBACK_LOCATION = {
+  latitude: 56.8587,
+  longitude: 35.9176,
+}
+
 export default function SOSButton() {
   const [isEmergency, setIsEmergency] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -29,13 +34,38 @@ export default function SOSButton() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { latitude, longitude, getLocation, isLoading: locationLoading } = useGeolocation()
+  const [manualLatitude, setManualLatitude] = useState('')
+  const [manualLongitude, setManualLongitude] = useState('')
+  const [useManualLocation, setUseManualLocation] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const {
+    latitude,
+    longitude,
+    accuracy,
+    error: geoError,
+    message: geoMessage,
+    source: locationSource,
+    isLoading: locationLoading,
+    getLocation,
+    resetLocation,
+  } = useGeolocation()
+  const hasCoordinates = typeof latitude === 'number' && typeof longitude === 'number'
 
-  const handleSOSClick = () => {
+  useEffect(() => {
+    if (!showModal) {
+      setManualLatitude('')
+      setManualLongitude('')
+      setUseManualLocation(false)
+      setSuccessMessage(null)
+      resetLocation()
+    }
+  }, [showModal, resetLocation])
+
+  const handleSOSClick = async () => {
     console.log('🆘 SOS Button clicked!')
     setShowModal(true)
     setError(null)
-    getLocation()
+    await getLocation()
   }
 
   const analyzeWithAI = async () => {
@@ -78,19 +108,41 @@ export default function SOSButton() {
   }
 
   const handleSubmitEmergency = async () => {
-    if (!latitude || !longitude) {
-      setError('Не удалось определить местоположение')
-      return
+    let finalLatitude: number | null = hasCoordinates ? latitude! : null
+    let finalLongitude: number | null = hasCoordinates ? longitude! : null
+
+    if (!finalLatitude || !finalLongitude) {
+      const manualLat = manualLatitude.trim()
+      const manualLon = manualLongitude.trim()
+
+      if (manualLat && manualLon) {
+        const parsedLat = Number(manualLat.replace(',', '.'))
+        const parsedLon = Number(manualLon.replace(',', '.'))
+
+        if (Number.isNaN(parsedLat) || Number.isNaN(parsedLon)) {
+          setError('Введите корректные координаты вручную или включите геолокацию')
+          return
+        }
+
+        finalLatitude = parsedLat
+        finalLongitude = parsedLon
+      }
+    }
+
+    if (!finalLatitude || !finalLongitude) {
+      finalLatitude = FALLBACK_LOCATION.latitude
+      finalLongitude = FALLBACK_LOCATION.longitude
     }
 
     setIsSubmitting(true)
     setError(null)
+    setSuccessMessage(null)
 
     try {
       await api.post('/api/v1/sos/', {
         type: emergencyType,
-        latitude: latitude.toString(),
-        longitude: longitude.toString(),
+        latitude: finalLatitude.toString(),
+        longitude: finalLongitude.toString(),
         title: title || `Экстренная ситуация: ${emergencyType}`,
         description: description || 'Требуется помощь',
       })
@@ -99,14 +151,22 @@ export default function SOSButton() {
         await analyzeWithAI()
       }
 
-      setShowModal(false)
       setIsEmergency(true)
       setDescription('')
       setTitle('')
+      setManualLatitude('')
+      setManualLongitude('')
+      setUseManualLocation(false)
+      setSuccessMessage('Сигнал SOS отправлен. Спасатели получили уведомление.')
       
       setTimeout(() => {
         setIsEmergency(false)
       }, 5000)
+
+      setTimeout(() => {
+        setShowModal(false)
+        setSuccessMessage(null)
+      }, 4000)
     } catch (err: any) {
       console.error('Failed to create SOS alert:', err)
       setError(err.response?.data?.detail || 'Не удалось отправить сигнал SOS')
@@ -134,7 +194,7 @@ export default function SOSButton() {
         {!isEmergency && (
           <>
             <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10"></div>
-            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10 [animation-delay:1s]"></div>
           </>
         )}
         
@@ -159,8 +219,8 @@ export default function SOSButton() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center">
-              <span className="text-5xl sm:text-6xl md:text-7xl font-extrabold mb-2">SOS</span>
-              <span className="text-sm sm:text-base font-semibold opacity-90">Нажмите для вызова</span>
+              <span className="text-5xl sm:text-6xl md:text-7xl font-extrabold mb-2 text-red-600 drop-shadow-[0_0_12px_rgba(239,68,68,0.35)]">SOS</span>
+              <span className="text-sm sm:text-base font-semibold text-red-500">Нажмите для вызова</span>
             </div>
           )}
         </button>
@@ -170,7 +230,7 @@ export default function SOSButton() {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="card-modern max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="sticky top-0 bg-gradient-emergency text-white p-5 sm:p-6 rounded-t-2xl z-10">
+            <div className="sticky top-0 bg-gradient-emergency text-white p-5 sm:p-6 rounded-t-2xl z-10 shadow-sm">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
@@ -184,12 +244,13 @@ export default function SOSButton() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowModal(false)}
-                  className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-xl transition-all"
+                  aria-label="Закрыть окно"
+                  className="inline-flex items-center gap-2 bg-white/90 text-red-600 font-semibold px-3 py-2 rounded-xl shadow-sm transition-all hover:bg-white"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <XCircle className="w-5 h-5" />
+                  <span className="hidden sm:inline">Закрыть</span>
                 </button>
               </div>
             </div>
@@ -208,15 +269,72 @@ export default function SOSButton() {
                         <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-sm text-gray-600">Определение GPS...</p>
                       </div>
-                    ) : latitude && longitude ? (
+                    ) : hasCoordinates ? (
                       <div>
                         <p className="text-sm font-mono text-gray-700 bg-white px-2 py-1 rounded">
-                          {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                          {latitude?.toFixed(6)}, {longitude?.toFixed(6)}
                         </p>
-                        <p className="text-xs text-green-600 mt-1">✓ Координаты получены</p>
+                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                          ✓ {locationSource === 'gps' ? 'Координаты получены через GPS' : 'Используются приблизительные координаты'}
+                        </p>
+                        {accuracy && (
+                          <p className="text-xs text-gray-500">± {Math.round(accuracy)} м</p>
+                        )}
                       </div>
                     ) : (
-                      <p className="text-sm text-red-600 font-medium">⚠️ Не удалось определить местоположение</p>
+                      <div className="space-y-2">
+                        <p className="text-sm text-red-600 font-medium">⚠️ Не удалось определить местоположение автоматически</p>
+                        {geoError && (
+                          <p className="text-xs text-red-500 leading-snug">{geoError}</p>
+                        )}
+                        {geoMessage && (
+                          <p className="text-xs text-amber-600 leading-snug">{geoMessage}</p>
+                        )}
+                        <p className="text-xs text-gray-600 leading-snug">
+                          Вы можете повторить попытку или ввести координаты вручную. Если координаты не указаны, будет использовано резервное местоположение ({FALLBACK_LOCATION.latitude.toFixed(4)}, {FALLBACK_LOCATION.longitude.toFixed(4)}).
+                        </p>
+                        <button
+                          type="button"
+                          onClick={getLocation}
+                          className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-700 underline"
+                        >
+                          Повторить попытку определения
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUseManualLocation(prev => !prev)}
+                          className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-700"
+                        >
+                          {useManualLocation ? 'Скрыть ручной ввод' : 'Ввести координаты вручную'}
+                        </button>
+                      </div>
+                    )}
+                    {useManualLocation && (
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">Широта</label>
+                          <input
+                            type="text"
+                            value={manualLatitude}
+                            onChange={(e) => setManualLatitude(e.target.value)}
+                            className="input-modern text-sm"
+                            placeholder="Например, 56.8587"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">Долгота</label>
+                          <input
+                            type="text"
+                            value={manualLongitude}
+                            onChange={(e) => setManualLongitude(e.target.value)}
+                            className="input-modern text-sm"
+                            placeholder="Например, 35.9176"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 sm:col-span-2">
+                          Используйте десятичный формат. Если оставить поля пустыми, система подставит координаты города по умолчанию.
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -287,6 +405,15 @@ export default function SOSButton() {
                 </div>
               )}
 
+              {successMessage && !showAIModal && (
+                <div className="card-modern bg-green-50 border-2 border-green-200 p-4 animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <p className="text-sm font-medium text-green-700">{successMessage}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Voice Input Button */}
               <button 
                 type="button"
@@ -315,7 +442,7 @@ export default function SOSButton() {
                 <button
                   type="button"
                   onClick={handleSubmitEmergency}
-                  disabled={!latitude || !longitude || isSubmitting || isAnalyzing}
+                  disabled={isSubmitting || isAnalyzing}
                   className="btn-primary flex-1"
                 >
                   {isSubmitting ? (
