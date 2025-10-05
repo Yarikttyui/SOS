@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 import httpx
 
@@ -109,6 +109,141 @@ class GigaChatClient:
                 "checklist": [],
                 "priority": None,
                 "warning": "Не удалось получить рекомендации от GigaChat",
+            }
+
+    async def classify_emergency(self, description: str) -> Dict[str, Any]:
+        """Classify emergency and provide structured assessment."""
+        try:
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "Ты аналитик спасательных служб. На основе описания классифицируй тип ЧС, приоритет, риски и дай рекомендации. "
+                        "Верни СТРОГО JSON со следующими полями: detected_type (fire|medical|police|water_rescue|mountain_rescue|search_rescue|ecological|general), "
+                        "priority (1-5), severity (low|medium|high|critical), confidence (0-1), risk_level (string), keywords (array of strings), "
+                        "estimated_victims (integer или null), location_hints (array), resources (array), guidance (array), warning (string или null), notes (string или null)."
+                    ),
+                },
+                {"role": "user", "content": description},
+            ]
+
+            data = await self.chat_completion(messages)
+            content = data["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+
+            parsed.setdefault("detected_type", "general")
+            parsed.setdefault("priority", 3)
+            parsed.setdefault("severity", "medium")
+            parsed.setdefault("confidence", 0.5)
+            parsed.setdefault("risk_level", "requires_verification")
+            parsed.setdefault("keywords", [])
+            parsed.setdefault("estimated_victims", None)
+            parsed.setdefault("location_hints", [])
+            parsed.setdefault("resources", [])
+            parsed.setdefault("guidance", [])
+            parsed.setdefault("warning", None)
+            parsed.setdefault("notes", None)
+            parsed["generated_at"] = datetime.utcnow().isoformat()
+            parsed["provider"] = "gigachat"
+
+            return parsed
+        except Exception as exc:
+            return {
+                "provider": "gigachat",
+                "error": str(exc),
+                "detected_type": "general",
+                "priority": 3,
+                "severity": "medium",
+                "confidence": 0.0,
+                "risk_level": "unknown",
+                "keywords": [],
+                "estimated_victims": None,
+                "location_hints": [],
+                "resources": [],
+                "guidance": [],
+                "warning": "Не удалось получить анализ от GigaChat",
+            }
+
+    async def generate_rescue_plan(
+        self,
+        emergency_type: str,
+        description: str,
+        location: str = "",
+        resources: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Generate detailed rescue plan."""
+        try:
+            resources_str = ", ".join(resources) if resources else "стандартные ресурсы"
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "Ты координатор спасательных операций. Создай детальный план действий. "
+                        "Верни СТРОГО JSON с полями: operation_name (string), phases (array of objects с полями phase_number, phase_name, duration_estimate, actions (array), required_personnel (array), equipment_needed (array)), "
+                        "team_composition (object с полями team_leader, members, specialists), safety_measures (array), communication_plan (string), evacuation_routes (array), "
+                        "medical_support (string), contingency_plans (array), estimated_duration (string), success_criteria (array), risks (array), guidance (array), resources (array), "
+                        "priority (1-5), risk_level (string), recommended_team (string|null), estimated_time (string|null), notes (string|null)."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "emergency_type": emergency_type,
+                            "description": description,
+                            "location": location or "не указано",
+                            "resources_available": resources_str,
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ]
+
+            data = await self.chat_completion(messages, temperature=0.25)
+            content = data["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+
+            parsed.setdefault("operation_name", "План спасательной операции")
+            parsed.setdefault("phases", [])
+            parsed.setdefault("team_composition", {})
+            parsed.setdefault("safety_measures", [])
+            parsed.setdefault("communication_plan", "")
+            parsed.setdefault("evacuation_routes", [])
+            parsed.setdefault("medical_support", "")
+            parsed.setdefault("contingency_plans", [])
+            parsed.setdefault("estimated_duration", "")
+            parsed.setdefault("success_criteria", [])
+            parsed.setdefault("risks", [])
+            parsed.setdefault("guidance", [])
+            parsed.setdefault("resources", resources or [])
+            parsed.setdefault("priority", 3)
+            parsed.setdefault("risk_level", "medium")
+            parsed.setdefault("recommended_team", None)
+            parsed.setdefault("estimated_time", None)
+            parsed.setdefault("notes", None)
+            parsed["generated_at"] = datetime.utcnow().isoformat()
+            parsed["provider"] = "gigachat"
+
+            return parsed
+        except Exception as exc:
+            return {
+                "provider": "gigachat",
+                "error": str(exc),
+                "operation_name": "Стандартная спасательная операция",
+                "phases": [],
+                "team_composition": {},
+                "safety_measures": [],
+                "communication_plan": "",
+                "evacuation_routes": [],
+                "medical_support": "",
+                "contingency_plans": [],
+                "estimated_duration": "",
+                "success_criteria": [],
+                "risks": [],
+                "guidance": [],
+                "resources": resources or [],
+                "priority": 3,
+                "risk_level": "unknown",
             }
 
 

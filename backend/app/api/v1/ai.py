@@ -170,7 +170,7 @@ async def test_ai_services():
             "image_analyzer": "available"
         },
         "models": {
-            "text": "gpt-4o",
+            "text": "gigachat",
             "voice": "whisper-1 + gpt-4o",
             "image": "gpt-4o-vision"
         }
