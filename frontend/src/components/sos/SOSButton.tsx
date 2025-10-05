@@ -4,10 +4,22 @@ import { useGeolocation } from '../../hooks/useGeolocation'
 import { api } from '../../services/api'
 import type { EmergencyType } from '../../types'
 
+interface AIReferenceData {
+  types: { code: string; name: string; description: string }[]
+  priorities: { level: number; name: string; description: string }[]
+  severity_levels: { code: string; name: string; description: string }[]
+}
+
 interface AIAnalysis {
   type: string
+  type_name?: string
+  type_description?: string
   priority: number
+  priority_name?: string
+  priority_description?: string
   severity: string
+  severity_name?: string
+  severity_description?: string
   keywords: string[]
   confidence: number
   estimated_victims: number | null
@@ -15,12 +27,154 @@ interface AIAnalysis {
   required_resources: string[]
   immediate_actions: string[]
   risk_assessment: string
+  warning?: string | null
+  notes?: string | null
+  model_used?: string
+  provider?: string
+  reference?: AIReferenceData
+  gigachat_raw?: unknown
   error?: string
 }
 
 const FALLBACK_LOCATION = {
   latitude: 56.8587,
   longitude: 35.9176,
+}
+
+const PRIORITY_FALLBACKS: Record<number, { name: string; description: string; icon: string }> = {
+  1: {
+    name: 'Критический',
+    description: 'Угроза жизни, необходим немедленный отклик',
+    icon: '⚠️',
+  },
+  2: {
+    name: 'Высокий',
+    description: 'Срочная помощь, риск серьёзного ухудшения',
+    icon: '🔴',
+  },
+  3: {
+    name: 'Средний',
+    description: 'Требуется помощь в ближайшее время',
+    icon: '🟡',
+  },
+  4: {
+    name: 'Низкий',
+    description: 'Мониторинг ситуации, опасность минимальна',
+    icon: '🟢',
+  },
+  5: {
+    name: 'Информационный',
+    description: 'Сообщение для учёта или планирования',
+    icon: 'ℹ️',
+  },
+}
+
+const SEVERITY_FALLBACKS: Record<string, { name: string; description: string }> = {
+  low: {
+    name: 'Низкая',
+    description: 'Ситуация под контролем, риск минимален',
+  },
+  medium: {
+    name: 'Средняя',
+    description: 'Есть риски, требуются координированные действия',
+  },
+  high: {
+    name: 'Высокая',
+    description: 'Серьёзная угроза, необходимы усиленные меры',
+  },
+  critical: {
+    name: 'Критическая',
+    description: 'Немедленная опасность жизни и здоровью',
+  },
+}
+
+const TYPE_FALLBACKS: Record<string, { name: string; description: string }> = {
+  fire: {
+    name: 'Пожар',
+    description: 'Возгорание, дым или угроза распространения огня',
+  },
+  medical: {
+    name: 'Медицинская помощь',
+    description: 'Травмы, болезни, необходимость экстренной помощи',
+  },
+  police: {
+    name: 'Полиция',
+    description: 'Угроза безопасности, правонарушения или насилие',
+  },
+  water_rescue: {
+    name: 'Спасение на воде',
+    description: 'Опасность на воде, тонущий человек или наводнение',
+  },
+  mountain_rescue: {
+    name: 'Горноспасательная операция',
+    description: 'Инцидент в горах, лавины, застрявшие туристы',
+  },
+  search_rescue: {
+    name: 'Поисково-спасательная операция',
+    description: 'Пропавшие люди, необходимость расширенных поисков',
+  },
+  ecological: {
+    name: 'Экологическая катастрофа',
+    description: 'Химические выбросы, утечка газа или загрязнение среды',
+  },
+  general: {
+    name: 'Общая ситуация',
+    description: 'Нестандартная ситуация, требующая уточнения',
+  },
+}
+
+const PRIORITY_STYLE_MAP: Record<number, { gradient: string; badgeClass: string }> = {
+  1: {
+    gradient: 'bg-gradient-to-r from-red-600 via-red-500 to-rose-500',
+    badgeClass: 'bg-red-100 text-red-800 border-red-200',
+  },
+  2: {
+    gradient: 'bg-gradient-to-r from-orange-500 via-red-500 to-amber-500',
+    badgeClass: 'bg-orange-100 text-orange-800 border-orange-200',
+  },
+  3: {
+    gradient: 'bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-300',
+    badgeClass: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  },
+  4: {
+    gradient: 'bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-400',
+    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  },
+  5: {
+    gradient: 'bg-gradient-to-r from-slate-400 via-slate-500 to-slate-600',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
+  },
+}
+
+const SEVERITY_STYLE_MAP: Record<string, { badgeClass: string; bannerClass: string; icon: string }> = {
+  critical: {
+    badgeClass: 'bg-red-100 text-red-800 border-red-200',
+    bannerClass: 'bg-red-50 border border-red-200 text-red-800',
+    icon: '🚨',
+  },
+  high: {
+    badgeClass: 'bg-orange-100 text-orange-800 border-orange-200',
+    bannerClass: 'bg-orange-50 border border-orange-200 text-orange-800',
+    icon: '⚠️',
+  },
+  medium: {
+    badgeClass: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    bannerClass: 'bg-yellow-50 border border-yellow-200 text-yellow-800',
+    icon: '⚠️',
+  },
+  low: {
+    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    bannerClass: 'bg-emerald-50 border border-emerald-200 text-emerald-800',
+    icon: '✅',
+  },
+}
+
+const RISK_LABELS: Record<string, string> = {
+  critical: 'Критический риск развития ситуации',
+  high: 'Высокий риск развития ситуации',
+  medium: 'Средний риск, требуется контроль',
+  low: 'Низкий риск, ситуация стабильна',
+  requires_verification: 'Требуется уточнение данных',
 }
 
 export default function SOSButton() {
@@ -50,6 +204,56 @@ export default function SOSButton() {
     resetLocation,
   } = useGeolocation()
   const hasCoordinates = typeof latitude === 'number' && typeof longitude === 'number'
+
+  const resolveProviderLabel = (analysis: AIAnalysis | null): string => {
+    if (!analysis) return 'AI-помощник'
+    const rawProvider = analysis.provider ?? analysis.model_used
+    if (!rawProvider) return 'AI-помощник'
+    if (rawProvider.toLowerCase().includes('gigachat')) {
+      return 'Сбер GigaChat'
+    }
+    return rawProvider
+  }
+
+  const getPriorityMeta = (analysis: AIAnalysis) => {
+    const fromReference = analysis.reference?.priorities?.find(
+      (item) => item.level === analysis.priority
+    )
+    const fallback = PRIORITY_FALLBACKS[analysis.priority] ?? PRIORITY_FALLBACKS[3]
+
+    return {
+      name: analysis.priority_name || fromReference?.name || fallback.name,
+      description:
+        analysis.priority_description || fromReference?.description || fallback.description,
+      icon: fallback.icon,
+    }
+  }
+
+  const getSeverityMeta = (analysis: AIAnalysis) => {
+    const fromReference = analysis.reference?.severity_levels?.find(
+      (item) => item.code === analysis.severity
+    )
+    const fallback = SEVERITY_FALLBACKS[analysis.severity] || SEVERITY_FALLBACKS.medium
+
+    return {
+      name: analysis.severity_name || fromReference?.name || fallback.name,
+      description:
+        analysis.severity_description || fromReference?.description || fallback.description,
+    }
+  }
+
+  const getTypeMeta = (analysis: AIAnalysis) => {
+    const fromReference = analysis.reference?.types?.find(
+      (item) => item.code === analysis.type
+    )
+    const fallback = TYPE_FALLBACKS[analysis.type] || TYPE_FALLBACKS.general
+
+    return {
+      name: analysis.type_name || fromReference?.name || fallback.name || analysis.type,
+      description:
+        analysis.type_description || fromReference?.description || fallback.description,
+    }
+  }
 
   useEffect(() => {
     if (!showModal) {
@@ -101,7 +305,7 @@ export default function SOSButton() {
       }
     } catch (err: any) {
       console.error('AI analysis failed:', err)
-      setError('Не удалось выполнить AI анализ. Продолжаем без анализа.')
+      setError('Не удалось выполнить анализ GigaChat. Продолжаем без рекомендаций.')
     } finally {
       setIsAnalyzing(false)
     }
@@ -477,197 +681,272 @@ export default function SOSButton() {
       )}
 
       {/* AI Analysis Modal */}
-      {showAIModal && aiAnalysis && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="card-modern max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-5 sm:p-6 rounded-t-2xl z-10">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
-                    <Sparkles className="w-6 h-6 animate-pulse" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-bold">
-                      🤖 AI Анализ ситуации
-                    </h2>
-                    <p className="text-sm opacity-90">Рекомендации искусственного интеллекта</p>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAIModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ✕
-              </button>
-            </div>
+      {showAIModal && aiAnalysis && (() => {
+        const providerLabel = resolveProviderLabel(aiAnalysis)
+        const priorityMeta = getPriorityMeta(aiAnalysis)
+        const severityMeta = getSeverityMeta(aiAnalysis)
+        const typeMeta = getTypeMeta(aiAnalysis)
 
-            {/* Success Banner */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-                <div>
-                  <p className="font-semibold text-green-900">Вызов успешно отправлен!</p>
-                  <p className="text-sm text-green-700">Спасатели получили уведомление и уже направляются к вам</p>
-                </div>
-              </div>
-            </div>
+        const priorityLevel = Math.min(5, Math.max(1, aiAnalysis.priority || 3))
+        const priorityStyles = PRIORITY_STYLE_MAP[priorityLevel] ?? PRIORITY_STYLE_MAP[3]
+        const severityStyles = SEVERITY_STYLE_MAP[aiAnalysis.severity] ?? SEVERITY_STYLE_MAP.medium
+        const confidenceValue =
+          typeof aiAnalysis.confidence === 'number'
+            ? Math.round(Math.max(0, Math.min(1, aiAnalysis.confidence)) * 100)
+            : null
+        const riskLabel = RISK_LABELS[aiAnalysis.risk_assessment] || aiAnalysis.risk_assessment
 
-            {/* Priority & Type */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-600 font-medium mb-1">Приоритет</p>
-                <p className="text-2xl font-bold text-red-700">
-                  {aiAnalysis.priority} / 5
-                </p>
-                <p className="text-xs text-red-600 mt-1">
-                  {aiAnalysis.severity === 'critical' && '⚠️ Критический'}
-                  {aiAnalysis.severity === 'high' && '🔴 Высокий'}
-                  {aiAnalysis.severity === 'medium' && '🟡 Средний'}
-                  {aiAnalysis.severity === 'low' && '🟢 Низкий'}
-                </p>
-              </div>
+        const metadataChips = [
+          {
+            key: 'type',
+            label: typeMeta.name,
+            description: typeMeta.description,
+            className: 'bg-blue-100 text-blue-800 border border-blue-200',
+          },
+          {
+            key: 'priority',
+            label: `${priorityMeta.icon ?? ''} ${priorityMeta.name}`.trim(),
+            description: priorityMeta.description,
+            className: `border ${priorityStyles.badgeClass}`.trim(),
+          },
+          {
+            key: 'severity',
+            label: severityMeta.name,
+            description: severityMeta.description,
+            className: `border ${severityStyles.badgeClass}`.trim(),
+          },
+        ].filter((chip) => Boolean(chip.label))
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-600 font-medium mb-1">Тип ЧС</p>
-                <p className="text-xl font-bold text-blue-700">
-                  {emergencyTypes.find(t => t.value === aiAnalysis.type)?.label || aiAnalysis.type}
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  Уверенность: {(aiAnalysis.confidence * 100).toFixed(0)}%
-                </p>
-              </div>
-            </div>
-
-            {/* Risk Assessment */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-semibold text-yellow-900 mb-1">Оценка рисков</p>
-                  <p className="text-sm text-yellow-800">{aiAnalysis.risk_assessment || 'Требуется уточнение'}</p>
-                  
-                  {aiAnalysis.error && (
-                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
-                      <p className="text-xs font-semibold text-red-800 mb-1">⚠️ Ошибка AI анализа:</p>
-                      <p className="text-xs text-red-700">{aiAnalysis.error}</p>
-                      <p className="text-xs text-red-600 mt-2">
-                        Возможные причины: проблема с API ключом OpenAI, исчерпана квота, или сетевая ошибка.
-                        Вызов успешно отправлен, но без AI рекомендаций.
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="card-modern max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+              <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-5 sm:p-6 rounded-t-2xl z-10">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
+                      <Sparkles className="w-6 h-6 animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
+                        <span>🤖 Анализ ситуации</span>
+                        <span className="text-sm text-purple-100">{providerLabel}</span>
+                      </h2>
+                      <p className="text-sm opacity-90">
+                        {confidenceValue !== null
+                          ? `Уверенность модели: ${confidenceValue}%`
+                          : 'Уверенность модели уточняется'}
                       </p>
                     </div>
+                  </div>
+                  <button
+                    onClick={() => setShowAIModal(false)}
+                    className="text-purple-50 hover:text-white text-2xl"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Success Banner */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <div>
+                    <p className="font-semibold text-green-900">Вызов успешно отправлен!</p>
+                    <p className="text-sm text-green-700">
+                      Спасатели получили уведомление и уже направляются к вам
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {metadataChips.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {metadataChips.map((chip) => (
+                    <span
+                      key={chip.key}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold shadow-sm transition-colors ${chip.className}`}
+                      title={chip.description}
+                    >
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid gap-4 mb-6 md:grid-cols-3">
+                <div className={`rounded-2xl p-4 text-white shadow ${priorityStyles.gradient}`}>
+                  <p className="text-sm text-white/80 font-medium">Приоритет</p>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold tracking-tight">{priorityLevel}</span>
+                    <span className="text-lg font-semibold text-white/90 flex items-center gap-1">
+                      {priorityMeta.icon && <span>{priorityMeta.icon}</span>}
+                      {priorityMeta.name}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs text-white/80 leading-relaxed">{priorityMeta.description}</p>
+                </div>
+
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                  <p className="text-sm text-blue-600 font-medium">Тип чрезвычайной ситуации</p>
+                  <p className="mt-1 text-xl font-bold text-blue-800">{typeMeta.name}</p>
+                  <p className="mt-2 text-xs text-blue-700 leading-relaxed">{typeMeta.description}</p>
+                  {aiAnalysis.warning && (
+                    <p className="mt-3 text-xs font-semibold text-red-600" title="Предупреждение модели">
+                      ⚠️ {aiAnalysis.warning}
+                    </p>
                   )}
                 </div>
+
+                <div className={`rounded-2xl p-4 ${severityStyles.bannerClass}`}>
+                  <p className="text-sm font-medium">Тяжесть последствий</p>
+                  <p className="mt-1 text-xl font-bold flex items-center gap-2">
+                    <span>{severityStyles.icon}</span>
+                    <span>{severityMeta.name}</span>
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed">{severityMeta.description}</p>
+                  <p className="mt-3 text-xs font-semibold">
+                    Риск: {riskLabel || 'оценка уточняется'}
+                  </p>
+                </div>
               </div>
+
+              {/* Risk Assessment */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-yellow-900 mb-1">Оценка рисков</p>
+                    <p className="text-sm text-yellow-800">
+                      {aiAnalysis.risk_assessment || 'Требуется уточнение'}
+                    </p>
+
+                    {aiAnalysis.notes && (
+                      <p className="mt-3 text-xs text-yellow-700">{aiAnalysis.notes}</p>
+                    )}
+
+                    {aiAnalysis.error && (
+                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
+                        <p className="text-xs font-semibold text-red-800 mb-1">⚠️ Ошибка AI анализа</p>
+                        <p className="text-xs text-red-700">{aiAnalysis.error}</p>
+                        <p className="text-xs text-red-600 mt-2">
+                          Возможные причины: недоступность сервиса GigaChat, исчерпанная квота или временная сетевая проблема.
+                          Вызов успешно отправлен, но рекомендации могли быть неполными.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Immediate Actions */}
+              {aiAnalysis.immediate_actions && aiAnalysis.immediate_actions.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="text-red-600">⚡</span>
+                    Немедленные действия
+                  </h3>
+                  <ul className="space-y-2">
+                    {aiAnalysis.immediate_actions.map((action, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <span className="text-red-600 font-bold">{index + 1}.</span>
+                        <span className="text-gray-700">{action}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Required Resources */}
+              {aiAnalysis.required_resources && aiAnalysis.required_resources.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="text-blue-600">🚒</span>
+                    Необходимые ресурсы
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {aiAnalysis.required_resources.map((resource, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                      >
+                        {resource}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Estimated Victims */}
+              {aiAnalysis.estimated_victims !== null && (
+                <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <p className="text-sm text-purple-600 font-medium">Пострадавшие</p>
+                  <p className="text-xl font-bold text-purple-700">
+                    Примерно {aiAnalysis.estimated_victims} человек(а)
+                  </p>
+                </div>
+              )}
+
+              {/* Keywords */}
+              {aiAnalysis.keywords && aiAnalysis.keywords.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="font-semibold text-gray-900 mb-2 text-sm">Ключевые слова</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {aiAnalysis.keywords.map((keyword, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
+                      >
+                        #{keyword}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Location Hints */}
+              {aiAnalysis.location_hints && aiAnalysis.location_hints.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-green-600" />
+                    Подсказки по местоположению
+                  </h3>
+                  <ul className="space-y-1">
+                    {aiAnalysis.location_hints.map((hint, index) => (
+                      <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
+                        <span className="text-green-600">•</span>
+                        <span>{hint}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowAIModal(false)}
+                className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+              >
+                Понятно
+              </button>
+
+              {/* Debug Info */}
+              <details className="mt-4 text-xs">
+                <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                  🐛 Debug: Показать полные данные AI
+                </summary>
+                <pre className="mt-2 p-3 bg-gray-100 rounded text-xs overflow-auto max-h-60">
+                  {JSON.stringify(aiAnalysis, null, 2)}
+                </pre>
+              </details>
+
+              <p className="text-xs text-center text-gray-500 mt-4">
+                Анализ выполнен с помощью {providerLabel}
+              </p>
             </div>
-
-            {/* Immediate Actions */}
-            {aiAnalysis.immediate_actions && aiAnalysis.immediate_actions.length > 0 && (
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <span className="text-red-600">⚡</span>
-                  Немедленные действия
-                </h3>
-                <ul className="space-y-2">
-                  {aiAnalysis.immediate_actions.map((action, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm">
-                      <span className="text-red-600 font-bold">{index + 1}.</span>
-                      <span className="text-gray-700">{action}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Required Resources */}
-            {aiAnalysis.required_resources && aiAnalysis.required_resources.length > 0 && (
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <span className="text-blue-600">🚒</span>
-                  Необходимые ресурсы
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {aiAnalysis.required_resources.map((resource, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
-                    >
-                      {resource}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Estimated Victims */}
-            {aiAnalysis.estimated_victims !== null && (
-              <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-sm text-purple-600 font-medium">Пострадавшие</p>
-                <p className="text-xl font-bold text-purple-700">
-                  Примерно {aiAnalysis.estimated_victims} человек(а)
-                </p>
-              </div>
-            )}
-
-            {/* Keywords */}
-            {aiAnalysis.keywords && aiAnalysis.keywords.length > 0 && (
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 mb-2 text-sm">Ключевые слова</h3>
-                <div className="flex flex-wrap gap-2">
-                  {aiAnalysis.keywords.map((keyword, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
-                    >
-                      #{keyword}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Location Hints */}
-            {aiAnalysis.location_hints && aiAnalysis.location_hints.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-green-600" />
-                  Подсказки по местоположению
-                </h3>
-                <ul className="space-y-1">
-                  {aiAnalysis.location_hints.map((hint, index) => (
-                    <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
-                      <span className="text-green-600">•</span>
-                      <span>{hint}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Close Button */}
-            <button
-              onClick={() => setShowAIModal(false)}
-              className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
-            >
-              Понятно
-            </button>
-
-            {/* Debug Info */}
-            <details className="mt-4 text-xs">
-              <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
-                🐛 Debug: Показать полные данные AI
-              </summary>
-              <pre className="mt-2 p-3 bg-gray-100 rounded text-xs overflow-auto max-h-60">
-                {JSON.stringify(aiAnalysis, null, 2)}
-              </pre>
-            </details>
-
-            <p className="text-xs text-center text-gray-500 mt-4">
-              Анализ выполнен с помощью OpenAI GPT-4o
-            </p>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </>
   )
 }

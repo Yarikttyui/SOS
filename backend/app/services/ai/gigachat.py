@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, List
 
@@ -38,13 +39,26 @@ class GigaChatClient:
             token_url = f"{self._base_url}/oauth/token"
             payload = {"scope": self._scope}
 
+            headers = {
+                "Authorization": f"Basic {self._auth_key}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+                "RqUID": str(uuid.uuid4()),
+            }
+
             async with httpx.AsyncClient(verify=self._verify, timeout=30) as client:
                 response = await client.post(
                     token_url,
-                    headers={"Authorization": f"Basic {self._auth_key}"},
+                    headers=headers,
                     data=payload,
                 )
-                response.raise_for_status()
+                try:
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    detail = exc.response.text.strip()
+                    raise RuntimeError(
+                        f"GigaChat auth failed (status {exc.response.status_code}): {detail or exc.response.reason_phrase}"
+                    ) from exc
                 data = response.json()
 
             self._token = data.get("access_token")
