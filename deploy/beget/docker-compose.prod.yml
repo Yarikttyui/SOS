@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: rescue_postgres
+    environment:
+      POSTGRES_USER: rescue_user
+      POSTGRES_PASSWORD: rescue_pass_2024_secure
+      POSTGRES_DB: rescue_db
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ru_RU.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rescue_user -d rescue_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rescue_network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: rescue_redis
+    command: redis-server --appendonly yes --requirepass rescue_redis_pass
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - rescue_network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: rescue_backend
+    env_file:
+      - ../../backend/.env.production
+    environment:
+      DATABASE_URL: postgresql://rescue_user:rescue_pass_2024_secure@postgres:5432/rescue_db
+      REDIS_URL: redis://:rescue_redis_pass@redis:6379/0
+    volumes:
+      - ../../backend/uploads:/app/uploads
+      - backend_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rescue_network
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+  celery_worker:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: rescue_celery_worker
+    env_file:
+      - ../../backend/.env.production
+    environment:
+      DATABASE_URL: postgresql://rescue_user:rescue_pass_2024_secure@postgres:5432/rescue_db
+      REDIS_URL: redis://:rescue_redis_pass@redis:6379/0
+    volumes:
+      - ../../backend:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - rescue_network
+    restart: unless-stopped
+    command: celery -A app.core.celery_app worker --loglevel=info
+
+  web:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile.prod
+    container_name: rescue_web
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - rescue_network
+    volumes:
+      - ./nginx/frontend.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_logs:
+
+networks:
+  rescue_network:
+    driver: bridge
