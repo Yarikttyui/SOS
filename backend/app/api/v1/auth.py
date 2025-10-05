@@ -4,6 +4,7 @@ Authentication endpoints
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import timedelta
 
 from app.core.database import get_db
@@ -91,17 +92,49 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
+    normalized_phone = user_data.phone.strip() if user_data.phone else None
+    if normalized_phone == "":
+        normalized_phone = None
+
+    if normalized_phone:
+        normalized_phone = normalized_phone.replace(" ", "")
+        phone_exists = db.query(User).filter(User.phone == normalized_phone).first()
+        if phone_exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number already registered"
+            )
+
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,
         hashed_password=hashed_password,
-        phone=user_data.phone,
+        phone=normalized_phone,
         full_name=user_data.full_name,
         role=UserRole.CITIZEN  # Always CITIZEN for registration
     )
     
     db.add(new_user)
-    db.commit()
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        if "users.phone" in str(exc.orig):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number already registered"
+            ) from exc
+        if "users.email" in str(exc.orig):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid registration data"
+        ) from exc
+
     db.refresh(new_user)
     
     return new_user
