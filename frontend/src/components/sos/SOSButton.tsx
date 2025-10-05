@@ -131,153 +131,221 @@ export default function SOSButton() {
   return (
     <>
       {/* SOS Button */}
-      <button
-        onClick={handleSOSClick}
-        disabled={isEmergency}
-        className={`
-          relative w-64 h-64 rounded-full text-white font-bold text-4xl
-          transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-400
-          ${isEmergency 
-            ? 'bg-green-500 hover:bg-green-600' 
-            : 'bg-red-600 hover:bg-red-700 sos-button'
-          }
-        `}
-      >
-        {isEmergency ? (
-          <div className="flex flex-col items-center">
-            <span className="text-3xl">✓</span>
-            <span className="text-lg mt-2">Помощь вызвана</span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
-            <span>SOS</span>
-            <span className="text-sm font-normal mt-2">Экстренный вызов</span>
-          </div>
+      <div className="relative">
+        <button
+          onClick={handleSOSClick}
+          disabled={isEmergency}
+          className={`
+            relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full text-white font-bold
+            transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-4
+            disabled:cursor-not-allowed
+            ${isEmergency 
+              ? 'bg-gradient-success shadow-lg ring-green-300 scale-95' 
+              : 'bg-gradient-emergency sos-button hover:scale-105 active:scale-95 ring-red-300'
+            }
+          `}
+        >
+          {isEmergency ? (
+            <div className="flex flex-col items-center justify-center animate-fade-in">
+              <CheckCircle className="w-16 h-16 sm:w-20 sm:h-20 mb-3" />
+              <span className="text-xl sm:text-2xl font-bold">Помощь вызвана</span>
+              <span className="text-sm sm:text-base font-normal mt-2 opacity-90">Ожидайте спасателей</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center">
+              <span className="text-5xl sm:text-6xl md:text-7xl font-extrabold mb-2">SOS</span>
+              <span className="text-sm sm:text-base font-semibold opacity-90">Нажмите для вызова</span>
+            </div>
+          )}
+        </button>
+        
+        {/* Pulse rings animation */}
+        {!isEmergency && (
+          <>
+            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75"></div>
+            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75" style={{ animationDelay: '1s' }}></div>
+          </>
         )}
-      </button>
+      </div>
 
       {/* Emergency Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                🚨 Экстренный вызов
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="card-modern max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+            <div className="sticky top-0 bg-gradient-emergency text-white p-5 sm:p-6 rounded-t-2xl z-10">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold">
+                      Экстренный вызов
+                    </h2>
+                    <p className="text-sm opacity-90">Заполните информацию о ситуации</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-xl transition-all"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            {/* Location Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-gray-900">Ваше местоположение</p>
-                  {locationLoading ? (
-                    <p className="text-sm text-gray-600">Определение местоположения...</p>
-                  ) : latitude && longitude ? (
-                    <p className="text-sm text-gray-600">
-                      {latitude.toFixed(6)}, {longitude.toFixed(6)}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-red-600">Не удалось определить местоположение</p>
-                  )}
+            <div className="p-5 sm:p-6 space-y-6">
+              {/* Location Info */}
+              <div className="card-modern bg-gradient-to-br from-blue-50 to-indigo-50 p-4 border-2 border-blue-200">
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-100 p-2 rounded-xl">
+                    <MapPin className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-900 mb-1">📍 Ваше местоположение</p>
+                    {locationLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-sm text-gray-600">Определение GPS...</p>
+                      </div>
+                    ) : latitude && longitude ? (
+                      <div>
+                        <p className="text-sm font-mono text-gray-700 bg-white px-2 py-1 rounded">
+                          {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">✓ Координаты получены</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-red-600 font-medium">⚠️ Не удалось определить местоположение</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Emergency Type Selection */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Тип чрезвычайной ситуации
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {emergencyTypes.map((type) => (
-                  <button
-                    key={type.value}
-                    onClick={() => setEmergencyType(type.value as EmergencyType)}
-                    className={`
-                      p-4 rounded-lg border-2 text-left transition-all
-                      ${emergencyType === type.value
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                      }
-                    `}
-                  >
-                    <span className="font-medium">{type.label}</span>
-                  </button>
-                ))}
+              {/* Emergency Type Selection */}
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  🚨 Тип чрезвычайной ситуации
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {emergencyTypes.map((type) => (
+                    <button
+                      key={type.value}
+                      onClick={() => setEmergencyType(type.value as EmergencyType)}
+                      className={`
+                        p-3 sm:p-4 rounded-xl border-2 text-left transition-all transform hover:scale-105 active:scale-95
+                        ${emergencyType === type.value
+                          ? 'border-red-500 bg-red-50 shadow-md ring-2 ring-red-200'
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm bg-white'
+                        }
+                      `}
+                    >
+                      <span className="text-sm sm:text-base font-semibold block text-center">{type.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Description */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Заголовок (опционально)
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Краткое описание..."
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Описание ситуации
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Опишите что произошло, количество пострадавших, видимые опасности..."
-              />
-            </div>
-
-            {/* Error message */}
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{error}</p>
+              {/* Title Input */}
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">
+                  📝 Заголовок (опционально)
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="input-modern"
+                  placeholder="Краткое описание ситуации..."
+                />
               </div>
-            )}
 
-            {/* Voice Input Button */}
-            <button className="w-full mb-6 px-6 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-700 transition-colors flex items-center justify-center gap-2">
-              <Mic className="w-5 h-5" />
-              <span>Описать голосом (скоро)</span>
-            </button>
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">
+                  💬 Описание ситуации
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="input-modern resize-none"
+                  placeholder="Опишите подробно: что произошло, количество пострадавших, видимые опасности, особые условия..."
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Подробное описание поможет AI проанализировать ситуацию и дать рекомендации
+                </p>
+              </div>
 
-            {/* Actions */}
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              {/* Error message */}
+              {error && (
+                <div className="card-modern bg-red-50 border-2 border-red-200 p-4 animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                    <p className="text-sm font-medium text-red-700">{error}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Voice Input Button */}
+              <button 
+                type="button"
+                className="w-full card-modern bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 p-4 hover:border-purple-400 hover:shadow-md transition-all group"
               >
-                Отмена
+                <div className="flex items-center justify-center gap-3">
+                  <div className="bg-purple-100 p-2 rounded-xl group-hover:bg-purple-200 transition-colors">
+                    <Mic className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block font-bold text-gray-900">Описать голосом</span>
+                    <span className="text-xs text-gray-600">Скоро будет доступно</span>
+                  </div>
+                </div>
               </button>
-              <button
-                onClick={handleSubmitEmergency}
-                disabled={!latitude || !longitude || isSubmitting || isAnalyzing}
-                className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                {isSubmitting ? 'Отправка...' : isAnalyzing ? '🤖 Анализ...' : 'Отправить SOS'}
-              </button>
-            </div>
 
-            {/* Warning */}
-            <div className="mt-6 flex items-start gap-2 text-sm text-gray-600">
-              <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-              <p>
-                Ложный вызов экстренных служб преследуется по закону. Убедитесь, что ситуация требует немедленного вмешательства.
-              </p>
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitEmergency}
+                  disabled={!latitude || !longitude || isSubmitting || isAnalyzing}
+                  className="btn-primary flex-1"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Отправка...
+                    </span>
+                  ) : isAnalyzing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Sparkles className="w-5 h-5 animate-pulse" />
+                      AI анализ...
+                    </span>
+                  ) : (
+                    '🚨 Отправить SOS'
+                  )}
+                </button>
+              </div>
+
+              {/* Warning */}
+              <div className="card-modern bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-gray-700">
+                    <span className="font-bold">Важно:</span> Ложный вызов экстренных служб преследуется по закону. 
+                    Убедитесь, что ситуация требует немедленного вмешательства.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -285,14 +353,21 @@ export default function SOSButton() {
 
       {/* AI Analysis Modal */}
       {showAIModal && aiAnalysis && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-6 h-6 text-purple-600" />
-                <h2 className="text-2xl font-bold text-gray-900">
-                  AI Анализ ситуации
-                </h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="card-modern max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+            <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-5 sm:p-6 rounded-t-2xl z-10">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
+                    <Sparkles className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold">
+                      🤖 AI Анализ ситуации
+                    </h2>
+                    <p className="text-sm opacity-90">Рекомендации искусственного интеллекта</p>
+                  </div>
+                </div>
               </div>
               <button
                 onClick={() => setShowAIModal(false)}
