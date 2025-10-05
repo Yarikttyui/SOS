@@ -1,10 +1,11 @@
 """
 Text Analysis Service
 """
-from typing import Dict, Any
+from typing import Dict, Any, List
 from openai import OpenAI
 
 from app.core.config import settings
+from .gigachat import gigachat_client
 
 
 class TextAnalyzer:
@@ -84,6 +85,16 @@ class TextAnalyzer:
             
             print(f"✅ AI Final Result - Confidence: {result.get('confidence', 'N/A')}")
             
+            if settings.GIGACHAT_AUTH_KEY:
+                gigachat_guidance = await gigachat_client.suggest_actions(text)
+                result["gigachat_guidance"] = gigachat_guidance
+                guidance_list: List[str] = result.get("immediate_actions", []) or []
+                extra_actions = gigachat_guidance.get("guidance") or []
+                for action in extra_actions:
+                    if action not in guidance_list:
+                        guidance_list.append(action)
+                result["immediate_actions"] = guidance_list
+
             return result
             
         except Exception as e:
@@ -173,6 +184,10 @@ class TextAnalyzer:
             plan = json.loads(response.choices[0].message.content)
             plan["generated_at"] = "now"
             plan["model_used"] = "gpt-4o"
+
+            if settings.GIGACHAT_AUTH_KEY:
+                guidance = await gigachat_client.suggest_actions(description)
+                plan["gigachat_guidance"] = guidance
             
             return plan
             
