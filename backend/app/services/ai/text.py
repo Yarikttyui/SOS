@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import json
+import re
 from copy import deepcopy
 from datetime import datetime
+from html import unescape
 from typing import Any, Dict, List, Optional
 
 from .gigachat import gigachat_client
@@ -148,6 +150,12 @@ def _safe_int(value: Any, default: int = 0) -> int:
         return default
 
 
+def _clean_error_message(message: Any) -> str:
+    raw = unescape(str(message))
+    cleaned = re.sub(r"<[^>]+>", "", raw)
+    return cleaned.strip()
+
+
 class TextAnalyzer:
     """High-level text analysis routines backed by GigaChat."""
 
@@ -221,7 +229,7 @@ class TextAnalyzer:
                 "severity_name": _get_severity_info("medium")["name"],
                 "severity_description": _get_severity_info("medium")["description"],
                 "reference": _build_reference_data(),
-                "error": str(exc),
+                "error": _clean_error_message(exc),
             }
 
     async def generate_rescue_plan(
@@ -303,7 +311,7 @@ class TextAnalyzer:
                 "notes": None,
                 "gigachat_raw": None,
                 "reference": _build_reference_data(),
-                "error": str(exc),
+                "error": _clean_error_message(exc),
             }
 
     async def analyze_situation_report(self, report_text: str) -> Dict[str, Any]:
@@ -364,6 +372,6 @@ class TextAnalyzer:
                 "urgency_level": 3,
                 "model_used": "gigachat",
                 "gigachat_raw": None,
-                "error": str(exc),
+                "error": _clean_error_message(exc),
             }
 

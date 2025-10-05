@@ -37,7 +37,10 @@ class GigaChatClient:
                 return
 
             token_url = f"{self._base_url}/oauth/token"
-            payload = {"scope": self._scope}
+            payload = {
+                "scope": self._scope,
+                "grant_type": "client_credentials",
+            }
 
             headers = {
                 "Authorization": f"Basic {self._auth_key}",
@@ -86,6 +89,7 @@ class GigaChatClient:
                 headers={
                     "Authorization": f"Bearer {self._token}",
                     "Content-Type": "application/json",
+                    "RqUID": str(uuid.uuid4()),
                 },
                 content=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
             )
