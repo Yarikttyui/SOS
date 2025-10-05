@@ -9,7 +9,19 @@ import {
   User,
   LogOut,
   RefreshCw,
-  Filter
+  Filter,
+  Flame,
+  Heart,
+  Shield,
+  Waves,
+  Mountain,
+  Search,
+  Leaf,
+  AlertTriangle,
+  TrendingUp,
+  Activity,
+  BarChart3,
+  Phone
 } from 'lucide-react'
 import type { SOSAlert, DashboardStats } from '../../types'
 
@@ -25,7 +37,6 @@ export default function OperatorDashboard() {
     try {
       setLoading(true)
       
-      // Fetch alerts
       const params = new URLSearchParams()
       if (filterStatus !== 'all') params.append('status', filterStatus)
       if (filterType !== 'all') params.append('type', filterType)
@@ -33,7 +44,6 @@ export default function OperatorDashboard() {
       const alertsResponse = await api.get(`/api/v1/sos/?${params}`)
       setAlerts(alertsResponse.data)
 
-      // Fetch stats
       const statsResponse = await api.get('/api/v1/analytics/dashboard')
       setStats(statsResponse.data)
     } catch (error) {
@@ -45,17 +55,14 @@ export default function OperatorDashboard() {
 
   useEffect(() => {
     fetchData()
-    // Auto refresh every 30 seconds
     const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
   }, [filterStatus, filterType])
 
   const handleAssignAlert = async (alertId: string) => {
     try {
-      // Operator assigns alert (changes status to ASSIGNED without specific rescuer)
       await api.patch(`/api/v1/sos/${alertId}`, {
         status: 'assigned'
-        // Don't set assigned_to - let rescuers pick it up
       })
       fetchData()
     } catch (error) {
@@ -72,201 +79,244 @@ export default function OperatorDashboard() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'assigned': return 'bg-blue-100 text-blue-800'
-      case 'in_progress': return 'bg-purple-100 text-purple-800'
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+  const getTypeIconComponent = (type: string) => {
+    const iconProps = { className: "w-5 h-5" }
+    switch (type) {
+      case 'fire': return <Flame {...iconProps} className="w-5 h-5 text-red-600" />
+      case 'medical': return <Heart {...iconProps} className="w-5 h-5 text-blue-600" />
+      case 'police': return <Shield {...iconProps} className="w-5 h-5 text-indigo-600" />
+      case 'water_rescue': return <Waves {...iconProps} className="w-5 h-5 text-cyan-600" />
+      case 'mountain_rescue': return <Mountain {...iconProps} className="w-5 h-5 text-yellow-700" />
+      case 'search_rescue': return <Search {...iconProps} className="w-5 h-5 text-orange-600" />
+      case 'ecological': return <Leaf {...iconProps} className="w-5 h-5 text-green-600" />
+      default: return <AlertTriangle {...iconProps} className="w-5 h-5 text-gray-600" />
     }
   }
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'fire': return '🔥'
-      case 'medical': return '🚑'
-      case 'police': return '👮'
-      case 'water_rescue': return '🚤'
-      case 'mountain_rescue': return '⛰️'
-      case 'search_rescue': return '🔍'
-      case 'ecological': return '☢️'
-      default: return '⚠️'
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">⏳ Ожидание</span>
+      case 'assigned':
+        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">📋 Назначено</span>
+      case 'in_progress':
+        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300">🚀 В работе</span>
+      case 'completed':
+        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">✅ Завершено</span>
+      case 'cancelled':
+        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-300">❌ Отменено</span>
+      default:
+        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-300">{status}</span>
     }
+  }
+
+  const getPriorityColor = (priority: number) => {
+    if (priority === 1) return 'border-l-4 border-red-600 bg-red-50'
+    if (priority === 2) return 'border-l-4 border-orange-600 bg-orange-50'
+    if (priority === 3) return 'border-l-4 border-yellow-600 bg-yellow-50'
+    return 'border-l-4 border-gray-600 bg-gray-50'
   }
 
   const formatTime = (date: string) => {
     const d = new Date(date)
-    return d.toLocaleString('ru-RU')
+    const now = new Date()
+    const diff = Math.floor((now.getTime() - d.getTime()) / 60000)
+    
+    if (diff < 1) return 'Только что'
+    if (diff < 60) return `${diff} мин назад`
+    if (diff < 1440) return `${Math.floor(diff / 60)} ч назад`
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+      {/* Modern Header */}
+      <header className="bg-white/80 backdrop-blur-xl shadow-lg sticky top-0 z-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Панель оператора
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                📞 Панель оператора
               </h1>
-              <p className="text-sm text-gray-600">
-                Добро пожаловать, {user?.full_name || user?.email}
+              <p className="text-sm sm:text-base text-gray-600 font-medium">
+                {user?.full_name || user?.email}
               </p>
             </div>
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Выход</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={fetchData}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl font-semibold transition-all"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Обновить</span>
+              </button>
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-semibold transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Выход</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-xl shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Всего тревог</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.total_alerts}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="card-modern bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-6 hover:shadow-2xl transition-all transform hover:scale-105">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <BarChart3 className="w-8 h-8" />
                 </div>
-                <AlertCircle className="w-12 h-12 text-blue-500" />
+                <TrendingUp className="w-6 h-6 opacity-50" />
               </div>
+              <p className="text-sm opacity-90 mb-1">Всего тревог</p>
+              <p className="text-4xl font-extrabold">{stats.total_alerts || 0}</p>
             </div>
             
-            <div className="bg-white rounded-xl shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Активные</p>
-                  <p className="text-3xl font-bold text-yellow-600">{stats.active_alerts}</p>
+            <div className="card-modern bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 hover:shadow-2xl transition-all transform hover:scale-105">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Activity className="w-8 h-8" />
                 </div>
-                <Clock className="w-12 h-12 text-yellow-500" />
+                <TrendingUp className="w-6 h-6 opacity-50" />
               </div>
+              <p className="text-sm opacity-90 mb-1">Активные</p>
+              <p className="text-4xl font-extrabold">{stats.active_alerts || 0}</p>
             </div>
             
-            <div className="bg-white rounded-xl shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Сегодня</p>
-                  <p className="text-3xl font-bold text-purple-600">{stats.today_alerts}</p>
+            <div className="card-modern bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 hover:shadow-2xl transition-all transform hover:scale-105">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Clock className="w-8 h-8" />
                 </div>
-                <RefreshCw className="w-12 h-12 text-purple-500" />
+                <TrendingUp className="w-6 h-6 opacity-50" />
               </div>
+              <p className="text-sm opacity-90 mb-1">Сегодня</p>
+              <p className="text-4xl font-extrabold">{stats.today_alerts || 0}</p>
             </div>
             
-            <div className="bg-white rounded-xl shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Завершено</p>
-                  <p className="text-3xl font-bold text-green-600">
-                    {stats.by_status?.completed || 0}
-                  </p>
+            <div className="card-modern bg-gradient-to-br from-green-500 to-green-600 text-white p-6 hover:shadow-2xl transition-all transform hover:scale-105">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <CheckCircle className="w-8 h-8" />
                 </div>
-                <CheckCircle className="w-12 h-12 text-green-500" />
+                <TrendingUp className="w-6 h-6 opacity-50" />
               </div>
+              <p className="text-sm opacity-90 mb-1">Завершено</p>
+              <p className="text-4xl font-extrabold">{stats.by_status?.completed || 0}</p>
             </div>
           </div>
         )}
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
+        <div className="card-modern p-5 sm:p-6 mb-6">
           <div className="flex items-center gap-4 flex-wrap">
-            <Filter className="w-5 h-5 text-gray-600" />
-            <div className="flex-1 flex gap-4">
+            <div className="flex items-center gap-2 text-gray-700">
+              <Filter className="w-5 h-5" />
+              <span className="font-semibold">Фильтры:</span>
+            </div>
+            <div className="flex-1 flex flex-col sm:flex-row gap-3">
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="input-modern flex-1"
               >
                 <option value="all">Все статусы</option>
                 <option value="pending">Ожидание</option>
                 <option value="assigned">Назначено</option>
                 <option value="in_progress">В работе</option>
                 <option value="completed">Завершено</option>
+                <option value="cancelled">Отменено</option>
               </select>
               
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="input-modern flex-1"
               >
                 <option value="all">Все типы</option>
-                <option value="fire">Пожар</option>
-                <option value="medical">Медицина</option>
-                <option value="police">Полиция</option>
-                <option value="water_rescue">Спасение на воде</option>
-                <option value="mountain_rescue">Горная</option>
-                <option value="search_rescue">Поиск</option>
-                <option value="ecological">Экология</option>
+                <option value="fire">🔥 Пожар</option>
+                <option value="medical">🚑 Медицина</option>
+                <option value="police">👮 Полиция</option>
+                <option value="water_rescue">🌊 На воде</option>
+                <option value="mountain_rescue">⛰️ Горы</option>
+                <option value="search_rescue">🔍 Поиск</option>
+                <option value="ecological">☢️ Экология</option>
+                <option value="general">⚠️ Общая</option>
               </select>
             </div>
-            
-            <button
-              onClick={fetchData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Обновить
-            </button>
           </div>
         </div>
 
         {/* Alerts List */}
-        <div className="bg-white rounded-xl shadow">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">
-              Тревожные сигналы ({alerts.length})
-            </h2>
+        <div className="card-modern">
+          <div className="p-5 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-cyan-50">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                🚨 Тревожные сигналы
+              </h2>
+              <span className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-lg">
+                {alerts.length}
+              </span>
+            </div>
           </div>
           
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-100">
             {loading ? (
-              <div className="p-8 text-center text-gray-500">
-                Загрузка...
+              <div className="flex flex-col items-center justify-center py-20">
+                <RefreshCw className="w-16 h-16 text-indigo-600 animate-spin mb-4" />
+                <p className="text-gray-600 font-medium">Загрузка данных...</p>
               </div>
             ) : alerts.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                Нет тревожных сигналов
+              <div className="flex flex-col items-center justify-center py-20">
+                <AlertCircle className="w-20 h-20 text-gray-300 mb-4" />
+                <h3 className="text-xl font-bold text-gray-500 mb-2">Нет тревожных сигналов</h3>
+                <p className="text-gray-400">Все спокойно! 🎉</p>
               </div>
             ) : (
               alerts.map((alert) => (
-                <div key={alert.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
+                <div 
+                  key={alert.id} 
+                  className={`p-5 sm:p-6 hover:bg-gray-50 transition-all ${getPriorityColor(alert.priority)}`}
+                >
+                  <div className="flex flex-col lg:flex-row gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{getTypeIcon(alert.type)}</span>
-                        <h3 className="text-lg font-semibold text-gray-900">
+                      {/* Header */}
+                      <div className="flex flex-wrap items-center gap-3 mb-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                          {getTypeIconComponent(alert.type)}
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">
                           {alert.title || `Тревога: ${alert.type}`}
                         </h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(alert.status)}`}>
-                          {alert.status}
-                        </span>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Приоритет: {alert.priority}
+                        {getStatusBadge(alert.status)}
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white">
+                          P{alert.priority}
                         </span>
                       </div>
                       
-                      <p className="text-gray-600 mb-3">{alert.description}</p>
+                      {/* Description */}
+                      <p className="text-gray-700 mb-4 leading-relaxed">{alert.description}</p>
                       
-                      <div className="flex items-center gap-6 text-sm text-gray-500">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          <span>{alert.latitude}, {alert.longitude}</span>
+                      {/* Info Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="font-mono">{Number(alert.latitude).toFixed(4)}, {Number(alert.longitude).toFixed(4)}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Clock className="w-4 h-4 text-gray-400" />
                           <span>{formatTime(alert.created_at)}</span>
                         </div>
-                        {alert.status === 'in_progress' && (alert.assigned_to_name || alert.team_name) && (
+                        {(alert.assigned_to_name || alert.team_name) && (
                           <div className="flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            <span className="font-medium text-blue-600">
+                            <User className="w-4 h-4 text-indigo-600" />
+                            <span className="font-semibold text-indigo-600">
                               {alert.team_name || alert.assigned_to_name}
                             </span>
                           </div>
@@ -274,18 +324,20 @@ export default function OperatorDashboard() {
                       </div>
                     </div>
                     
-                    <div className="flex flex-col gap-2 ml-4">
+                    {/* Actions */}
+                    <div className="flex lg:flex-col gap-2 min-w-[160px]">
                       {alert.status === 'pending' && (
                         <>
                           <button
                             onClick={() => handleAssignAlert(alert.id)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                            className="flex-1 lg:flex-none btn-primary flex items-center justify-center gap-2 py-3"
                           >
+                            <Phone className="w-4 h-4" />
                             Принять
                           </button>
                           <button
                             onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
-                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                            className="flex-1 lg:flex-none px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-semibold transition-all"
                           >
                             Отменить
                           </button>
@@ -295,35 +347,26 @@ export default function OperatorDashboard() {
                         <>
                           <button
                             onClick={() => handleUpdateStatus(alert.id, 'completed')}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                            className="flex-1 lg:flex-none btn-primary bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2 py-3"
                           >
-                            Завершить вызов
+                            <CheckCircle className="w-4 h-4" />
+                            Завершить
                           </button>
                           <button
                             onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                            className="flex-1 lg:flex-none px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all"
                           >
                             Отменить
                           </button>
-                          <span className="text-sm text-blue-600 font-medium">
-                            {alert.team_name || alert.assigned_to_name 
-                              ? `Бригада: ${alert.team_name || alert.assigned_to_name}` 
-                              : 'Бригада в пути'}
-                          </span>
                         </>
                       )}
                       {alert.status === 'assigned' && (
-                        <>
-                          <button
-                            onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                          >
-                            Отменить вызов
-                          </button>
-                          <span className="text-sm text-orange-600 font-medium">
-                            Ожидание бригады
-                          </span>
-                        </>
+                        <button
+                          onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
+                          className="flex-1 lg:flex-none px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all"
+                        >
+                          Отменить вызов
+                        </button>
                       )}
                     </div>
                   </div>
