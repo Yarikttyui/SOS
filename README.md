@@ -6,7 +6,7 @@
 **Frontend UI**: ✅ **ПОЛНОСТЬЮ РАБОТАЕТ** (React + TypeScript на порту 3001)  
 **База данных**: ✅ SQLite с 4 пользователями готова к использованию  
 **Аутентификация**: ✅ JWT токены, регистрация и логин работают  
-**AI Интеграция**: ✅ OpenAI API настроен (ключ активен)  
+**AI Интеграция**: ✅ Yandex GPT Lite (обновлено 6 октября 2025)  
 **Документация**: ✅ Swagger UI полностью функционален
 
 ---
@@ -103,6 +103,9 @@ OPENAI_API_KEY=47d22a91-9b0f-412b-a3ed-b93f522f6b6b
 DEFAULT_LOCATION_LAT=56.8587  # Тверь
 DEFAULT_LOCATION_LON=35.9176
 SECRET_KEY=your-super-secret-key-change-in-production-min-32-chars-long-for-jwt-security
+YANDEX_GPT_API_KEY=<ваш_секретный_api_key>
+YANDEX_GPT_FOLDER_ID=<ваш_folder_id>
+YANDEX_GPT_MODEL=yandexgpt-lite
 ```
 
 ### Frontend (.env)

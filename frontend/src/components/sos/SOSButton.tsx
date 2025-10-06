@@ -32,7 +32,7 @@ interface AIAnalysis {
   model_used?: string
   provider?: string
   reference?: AIReferenceData
-  gigachat_raw?: unknown
+  llm_raw?: unknown
   error?: string
 }
 
@@ -209,8 +209,12 @@ export default function SOSButton() {
     if (!analysis) return 'AI-помощник'
     const rawProvider = analysis.provider ?? analysis.model_used
     if (!rawProvider) return 'AI-помощник'
-    if (rawProvider.toLowerCase().includes('gigachat')) {
-      return 'Сбер GigaChat'
+    const normalized = rawProvider.toLowerCase()
+    if (normalized.includes('yandex')) {
+      return 'Яндекс GPT Lite'
+    }
+    if (normalized.includes('gigachat')) {
+      return 'Сбер GigaChat (устарело)'
     }
     return rawProvider
   }
@@ -305,7 +309,7 @@ export default function SOSButton() {
       }
     } catch (err: any) {
       console.error('AI analysis failed:', err)
-      setError('Не удалось выполнить анализ GigaChat. Продолжаем без рекомендаций.')
+  setError('Не удалось выполнить анализ в Яндекс GPT. Продолжаем без рекомендаций.')
     } finally {
       setIsAnalyzing(false)
     }
@@ -830,7 +834,7 @@ export default function SOSButton() {
                         <p className="text-xs font-semibold text-red-800 mb-1">⚠️ Ошибка AI анализа</p>
                         <p className="text-xs text-red-700">{aiAnalysis.error}</p>
                         <p className="text-xs text-red-600 mt-2">
-                          Возможные причины: недоступность сервиса GigaChat, исчерпанная квота или временная сетевая проблема.
+                          Возможные причины: недоступность сервиса Яндекс GPT, исчерпанная квота или временная сетевая проблема.
                           Вызов успешно отправлен, но рекомендации могли быть неполными.
                         </p>
                       </div>
