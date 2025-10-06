@@ -10,6 +10,7 @@ from app.services.ai.text import TextAnalyzer
 from app.services.ai.voice import VoiceAssistant
 from app.services.ai.image import ImageAnalyzer
 from app.core.database import get_db
+from app.core.config import settings
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -170,7 +171,7 @@ async def test_ai_services():
             "image_analyzer": "available"
         },
         "models": {
-            "text": "gigachat",
+            "text": settings.YANDEX_GPT_MODEL or "yandexgpt-lite",
             "voice": "whisper-1 + gpt-4o",
             "image": "gpt-4o-vision"
         }

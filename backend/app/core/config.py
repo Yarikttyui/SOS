@@ -52,14 +52,16 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     OPENAI_BASE_URL: str = os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com")
 
-    GIGACHAT_AUTH_KEY: str = os.getenv("GIGACHAT_AUTH_KEY", "")
-    GIGACHAT_CLIENT_ID: str = os.getenv("GIGACHAT_CLIENT_ID", "")
-    GIGACHAT_CLIENT_SECRET: str = os.getenv("GIGACHAT_CLIENT_SECRET", "")
-    GIGACHAT_BASE_URL: str = os.getenv("GIGACHAT_BASE_URL", "https://gigachat.devices.sberbank.ru/api/v1")
-    GIGACHAT_AUTH_URL: str = os.getenv("GIGACHAT_AUTH_URL", "https://ngw.devices.sberbank.ru:9443/api/v2")
-    GIGACHAT_SCOPE: str = os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
-    GIGACHAT_MODEL: str = os.getenv("GIGACHAT_MODEL", "GigaChat-2")
-    GIGACHAT_VERIFY_SSL: bool = os.getenv("GIGACHAT_VERIFY_SSL", "false").lower() in {"1", "true", "yes"}
+    YANDEX_GPT_API_KEY: str = os.getenv("YANDEX_GPT_API_KEY", "")
+    YANDEX_GPT_FOLDER_ID: str = os.getenv("YANDEX_GPT_FOLDER_ID", "")
+    YANDEX_GPT_KEY_ID: str = os.getenv("YANDEX_GPT_KEY_ID", "")
+    YANDEX_GPT_MODEL: str = os.getenv("YANDEX_GPT_MODEL", "yandexgpt-lite")
+    YANDEX_GPT_TEMPERATURE: float = float(os.getenv("YANDEX_GPT_TEMPERATURE", "0.2") or "0.2")
+    YANDEX_GPT_MAX_TOKENS: int = int(os.getenv("YANDEX_GPT_MAX_TOKENS", "1024") or "1024")
+    YANDEX_GPT_COMPLETION_URL: str = os.getenv(
+        "YANDEX_GPT_COMPLETION_URL",
+        "https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
+    ) or "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     
     MAPBOX_ACCESS_TOKEN: str = "your_mapbox_token_here"
     

@@ -1,4 +1,4 @@
-"""Text Analysis Service powered exclusively by GigaChat."""
+"""Text Analysis Service powered by Yandex GPT."""
 from __future__ import annotations
 
 import json
@@ -8,7 +8,7 @@ from datetime import datetime
 from html import unescape
 from typing import Any, Dict, List, Optional
 
-from .gigachat import gigachat_client
+from .yandex_gpt import yandex_gpt_client
 
 
 EMERGENCY_TYPE_INFO: Dict[str, Dict[str, str]] = {
@@ -157,10 +157,10 @@ def _clean_error_message(message: Any) -> str:
 
 
 class TextAnalyzer:
-    """High-level text analysis routines backed by GigaChat."""
+    """High-level text analysis routines backed by Yandex GPT."""
 
     def __init__(self) -> None:
-        self.client = gigachat_client
+        self.client = yandex_gpt_client
 
     async def classify_emergency(self, text: str) -> Dict[str, Any]:
         """Classify emergency type and extract structured metadata."""
@@ -170,8 +170,14 @@ class TextAnalyzer:
             if classification.get("error"):
                 raise RuntimeError(classification["error"])
 
+            model_used = (
+                classification.get("provider")
+                or classification.get("model_used")
+                or self.client.model_name
+            )
+
             result: Dict[str, Any] = {
-                "model_used": "gigachat",
+                "model_used": model_used,
                 "generated_at": classification.get("generated_at")
                 or datetime.utcnow().isoformat(),
                 "type": classification.get("detected_type", "general"),
@@ -186,7 +192,7 @@ class TextAnalyzer:
                 "immediate_actions": _ensure_list(classification.get("guidance")),
                 "warning": classification.get("warning"),
                 "notes": classification.get("notes"),
-                "gigachat_raw": classification,
+                "llm_raw": classification.get("raw") or classification,
             }
 
             heuristics = classification.get("heuristics") or {}
@@ -236,7 +242,7 @@ class TextAnalyzer:
             return result
         except Exception as exc:
             return {
-                "model_used": "gigachat",
+                "model_used": self.client.model_name,
                 "type": "general",
                 "priority": 3,
                 "severity": "medium",
@@ -249,7 +255,7 @@ class TextAnalyzer:
                 "risk_assessment": "Требуется уточнение",
                 "warning": None,
                 "notes": None,
-                "gigachat_raw": None,
+                "llm_raw": None,
                 "type_name": EMERGENCY_TYPE_INFO["general"]["name"],
                 "type_description": EMERGENCY_TYPE_INFO["general"]["description"],
                 "priority_name": _get_priority_info(3)["name"],
@@ -267,7 +273,7 @@ class TextAnalyzer:
         location: str = "",
         resources_available: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Generate detailed rescue operation plan using GigaChat."""
+        """Generate detailed rescue operation plan using Yandex GPT."""
         try:
             plan_response = await self.client.generate_rescue_plan(
                 emergency_type=emergency_type,
@@ -280,9 +286,8 @@ class TextAnalyzer:
                 raise RuntimeError(plan_response["error"])
 
             plan = deepcopy(plan_response)
-            raw_plan = deepcopy(plan_response)
 
-            plan["model_used"] = plan.get("model_used") or "gigachat"
+            plan["model_used"] = plan.get("model_used") or self.client.model_name
             plan["generated_at"] = plan.get("generated_at") or datetime.utcnow().isoformat()
             plan["priority"] = _safe_int(plan.get("priority"), 3)
             plan["risk_level"] = plan.get("risk_level", "medium")
@@ -300,13 +305,14 @@ class TextAnalyzer:
             plan["recommended_team"] = plan.get("recommended_team")
             plan["estimated_time"] = plan.get("estimated_time")
             plan["notes"] = plan.get("notes")
-            plan["gigachat_raw"] = raw_plan
+            plan["llm_raw"] = plan_response.get("raw")
+            plan.pop("raw", None)
             plan["reference"] = _build_reference_data()
 
             return plan
         except Exception as exc:
             return {
-                "model_used": "gigachat",
+                "model_used": self.client.model_name,
                 "operation_name": "Стандартная спасательная операция",
                 "phases": [
                     {
@@ -337,13 +343,13 @@ class TextAnalyzer:
                 "recommended_team": None,
                 "estimated_time": None,
                 "notes": None,
-                "gigachat_raw": None,
+                "llm_raw": None,
                 "reference": _build_reference_data(),
                 "error": _clean_error_message(exc),
             }
 
     async def analyze_situation_report(self, report_text: str) -> Dict[str, Any]:
-        """Analyze detailed situation reports via GigaChat."""
+        """Analyze detailed situation reports via Yandex GPT."""
 
         def _parse_response(content: str) -> Dict[str, Any]:
             try:
@@ -384,8 +390,8 @@ class TextAnalyzer:
             parsed.setdefault("next_steps", [])
             parsed.setdefault("sentiment", "neutral")
             parsed.setdefault("urgency_level", 3)
-            parsed["model_used"] = "gigachat"
-            parsed["gigachat_raw"] = data
+            parsed["model_used"] = self.client.model_name
+            parsed["llm_raw"] = data.get("raw") or data
 
             return parsed
         except Exception as exc:
@@ -398,8 +404,8 @@ class TextAnalyzer:
                 "next_steps": [],
                 "sentiment": "neutral",
                 "urgency_level": 3,
-                "model_used": "gigachat",
-                "gigachat_raw": None,
+                "model_used": self.client.model_name,
+                "llm_raw": None,
                 "error": _clean_error_message(exc),
             }
 
