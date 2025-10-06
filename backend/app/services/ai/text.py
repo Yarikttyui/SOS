@@ -189,6 +189,34 @@ class TextAnalyzer:
                 "gigachat_raw": classification,
             }
 
+            heuristics = classification.get("heuristics") or {}
+            if heuristics:
+                detected_type = heuristics.get("detected_type")
+                if result["type"] in {"", None, "general"} and detected_type:
+                    result["type"] = detected_type
+
+                heuristic_priority = heuristics.get("priority")
+                if isinstance(heuristic_priority, int):
+                    result["priority"] = max(1, min(result["priority"], heuristic_priority))
+
+                heuristic_severity = heuristics.get("severity")
+                severity_order = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+                if isinstance(heuristic_severity, str):
+                    heuristic_severity = heuristic_severity.lower()
+                    if severity_order.get(heuristic_severity, -1) > severity_order.get(result["severity"], -1):
+                        result["severity"] = heuristic_severity
+
+                result["confidence"] = max(result["confidence"], heuristics.get("confidence_boost", 0.0))
+                result["risk_assessment"] = heuristics.get("risk_level") or result["risk_assessment"]
+
+                merged_keywords = set(result.get("keywords", []))
+                merged_keywords.update(heuristics.get("keywords") or [])
+                result["keywords"] = sorted(kw for kw in merged_keywords if kw)
+
+                merged_resources = set(result.get("required_resources", []))
+                merged_resources.update(heuristics.get("resources") or [])
+                result["required_resources"] = sorted(res for res in merged_resources if res)
+
             type_info = _get_type_info(result["type"])
             priority_info = _get_priority_info(result["priority"])
             severity_info = _get_severity_info(result["severity"])
