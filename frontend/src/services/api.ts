@@ -8,10 +8,20 @@ const normalizeBaseUrl = (url: string) => {
   return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed
 }
 
+const trimTrailingSlash = (url: string) => url.replace(/\/+$/, '')
+
 export const API_BASE_URL = normalizeBaseUrl(rawEnvUrl || fallbackUrl)
-export const ANDROID_APK_URL = import.meta.env.VITE_ANDROID_APK_URL
-  ? normalizeBaseUrl(import.meta.env.VITE_ANDROID_APK_URL)
-  : `${API_BASE_URL}/api/v1/downloads/android`
+
+const buildAndroidDownloadUrl = () => {
+  const explicitUrl = import.meta.env.VITE_ANDROID_APK_URL
+  if (explicitUrl) {
+    return trimTrailingSlash(explicitUrl)
+  }
+  return `${API_BASE_URL}/api/v1/downloads/android`
+}
+
+export const ANDROID_APK_URL = buildAndroidDownloadUrl()
+export const ANDROID_APK_METADATA_URL = `${trimTrailingSlash(ANDROID_APK_URL)}/metadata`
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

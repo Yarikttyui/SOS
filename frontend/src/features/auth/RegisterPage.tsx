@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { AlertCircle } from 'lucide-react'
@@ -13,6 +13,7 @@ interface RegisterForm {
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register, isLoading, error, clearError } = useAuthStore()
+  const formRef = useRef<HTMLFormElement | null>(null)
   
   const [formData, setFormData] = useState<RegisterForm>({
     email: '',
@@ -44,6 +45,25 @@ export default function RegisterPage() {
     }
   }
 
+  const triggerSubmit = useCallback(() => {
+    if (isLoading) {
+      return
+    }
+    formRef.current?.requestSubmit()
+  }, [isLoading])
+
+  const handleTouchEnd = useCallback((event: React.TouchEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    triggerSubmit()
+  }, [triggerSubmit])
+
+  const handleKeyUp = useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      triggerSubmit()
+    }
+  }, [triggerSubmit])
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-blue-50 px-4 py-12">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-2xl">
@@ -61,7 +81,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+  <form ref={formRef} onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div>
             <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-2">
               Email *
@@ -138,6 +158,8 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
+            onTouchEnd={handleTouchEnd}
+            onKeyUp={handleKeyUp}
             className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
           >
             {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
