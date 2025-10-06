@@ -1,444 +1,507 @@
-import { useState, useEffect } from 'react'
-import { 
-  LogOut, 
-  AlertCircle, 
-  Clock, 
-  CheckCircle, 
-  Users, 
-  TrendingUp, 
-  Activity, 
-  RefreshCw,
-  BarChart3,
-  Settings,
-  UserCog,
-  Flame,
-  Heart,
-  Shield,
-  Waves,
-  Mountain,
-  Search,
+import { useEffect, useMemo, useState } from 'react'
+import {
+  AlertCircle,
   AlertTriangle,
-  Leaf
+  BarChart3,
+  Bell,
+  CheckCircle2,
+  Clock,
+  Flame,
+  Leaf,
+  LifeBuoy,
+  LogOut,
+  MapPin,
+  Mountain,
+  RefreshCw,
+  Search,
+  Shield,
+  Target,
+  TrendingUp,
+  UserCog,
+  Users
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { useAuthStore } from '../../store/authStore'
-import type { User, SOSAlert } from '../../types'
+import type {
+  AlertStatus,
+  DashboardStats,
+  EmergencyType,
+  SOSAlert,
+  User,
+  UserRole
+} from '../../types'
 
-interface SystemStats {
-  total_alerts: number
-  active_alerts: number
-  today_alerts: number
-  by_status: Record<string, number>
-  by_type: Record<string, number>
+type AdminTab = 'overview' | 'users' | 'alerts'
+
+const STATUS_ORDER: AlertStatus[] = ['pending', 'assigned', 'in_progress', 'completed', 'cancelled']
+const TYPE_ORDER: EmergencyType[] = [
+  'fire',
+  'medical',
+  'police',
+  'water_rescue',
+  'mountain_rescue',
+  'search_rescue',
+  'ecological',
+  'general'
+]
+
+const DEFAULT_STATS: DashboardStats = {
+  total_alerts: 0,
+  active_alerts: 0,
+  today_alerts: 0,
+  by_status: {
+    pending: 0,
+    assigned: 0,
+    in_progress: 0,
+    completed: 0,
+    cancelled: 0
+  },
+  by_type: {
+    fire: 0,
+    medical: 0,
+    police: 0,
+    water_rescue: 0,
+  mountain_rescue: 0,
+  search_rescue: 0,
+  ecological: 0,
+  general: 0
+  }
 }
 
-interface ResponseTimeStats {
-  average_response_time_minutes: number
+const STATUS_LABELS: Record<AlertStatus, string> = {
+  pending: 'Новые',
+  assigned: 'Назначенные',
+  in_progress: 'В процессе',
+  completed: 'Завершённые',
+  cancelled: 'Отменённые'
 }
 
-export default function AdminDashboard() {
+const STATUS_COLORS: Record<AlertStatus, string> = {
+  pending: 'bg-amber-500/15 border border-amber-400/40 text-amber-200',
+  assigned: 'bg-sky-500/15 border border-sky-400/40 text-sky-200',
+  in_progress: 'bg-indigo-500/15 border border-indigo-400/40 text-indigo-200',
+  completed: 'bg-emerald-500/15 border border-emerald-400/40 text-emerald-200',
+  cancelled: 'bg-slate-500/15 border border-slate-400/40 text-slate-200'
+}
+
+const ROLE_STYLES: Record<UserRole, string> = {
+  admin: 'bg-gradient-to-r from-rose-500/40 to-rose-400/20 text-rose-100 border border-rose-400/40',
+  coordinator: 'bg-gradient-to-r from-purple-500/40 to-purple-400/20 text-purple-100 border border-purple-400/40',
+  operator: 'bg-gradient-to-r from-sky-500/40 to-sky-400/20 text-sky-100 border border-sky-400/40',
+  rescuer: 'bg-gradient-to-r from-emerald-500/40 to-emerald-400/20 text-emerald-100 border border-emerald-400/40',
+  citizen: 'bg-gradient-to-r from-slate-500/40 to-slate-400/20 text-slate-100 border border-slate-400/40'
+}
+
+const TYPE_LABELS: Record<EmergencyType, string> = {
+  fire: 'Пожар',
+  medical: 'Медицина',
+  police: 'Полиция',
+  water_rescue: 'Водоём',
+  mountain_rescue: 'Горы',
+  search_rescue: 'Поиск',
+  ecological: 'Экология',
+  general: 'Общая'
+}
+
+function formatDate(value?: string) {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return '—'
+  return new Date(value).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function getTypeIcon(type: EmergencyType) {
+  const baseClass = 'h-5 w-5 text-white'
+  switch (type) {
+    case 'fire':
+      return <Flame className={baseClass} />
+    case 'medical':
+      return <CheckCircle2 className={baseClass} />
+    case 'police':
+      return <Shield className={baseClass} />
+    case 'water_rescue':
+      return <LifeBuoy className={baseClass} />
+    case 'mountain_rescue':
+      return <Mountain className={baseClass} />
+    case 'search_rescue':
+      return <Search className={baseClass} />
+    case 'ecological':
+      return <Leaf className={baseClass} />
+    case 'general':
+      return <AlertCircle className={baseClass} />
+    default:
+      return <AlertTriangle className={baseClass} />
+  }
+}
+
+function getProgressWidthClass(value: number, total: number) {
+  if (!total) return 'w-0'
+  const ratio = value / total
+  if (ratio >= 0.95) return 'w-full'
+  if (ratio >= 0.8) return 'w-11/12'
+  if (ratio >= 0.6) return 'w-3/4'
+  if (ratio >= 0.4) return 'w-2/3'
+  if (ratio >= 0.25) return 'w-1/2'
+  if (ratio >= 0.1) return 'w-1/3'
+  return 'w-1/6'
+}
+
+export function AdminDashboard() {
   const { user, logout } = useAuthStore()
-  const [stats, setStats] = useState<SystemStats | null>(null)
-  const [responseTime, setResponseTime] = useState<ResponseTimeStats | null>(null)
+  const [stats, setStats] = useState<DashboardStats>(DEFAULT_STATS)
   const [users, setUsers] = useState<User[]>([])
   const [alerts, setAlerts] = useState<SOSAlert[]>([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'alerts'>('overview')
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview')
+  const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
-    fetchData()
-    const interval = setInterval(fetchData, 30000)
-    return () => clearInterval(interval)
+    loadData()
   }, [])
 
-  const fetchData = async () => {
+  const loadData = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true)
     try {
-      setLoading(true)
-      
-      try {
-        const statsRes = await api.get('/api/v1/analytics/dashboard')
-        setStats(statsRes.data)
-      } catch (error) {
-        console.error('Failed to fetch stats:', error)
-        setStats({
-          total_alerts: 0,
-          active_alerts: 0,
-          today_alerts: 0,
-          by_status: {},
-          by_type: {}
-        })
+      const [statsRes, usersRes, alertsRes] = await Promise.all([
+        api.get('/api/v1/analytics/dashboard'),
+        api.get('/api/v1/users'),
+        api.get('/api/v1/sos/', { params: { limit: 25 } })
+      ])
+
+      const statsData = statsRes.data as Partial<DashboardStats> | undefined
+      const mergedStats: DashboardStats = {
+        ...DEFAULT_STATS,
+        ...statsData,
+        by_status: {
+          ...DEFAULT_STATS.by_status,
+          ...(statsData?.by_status ?? {})
+        },
+        by_type: {
+          ...DEFAULT_STATS.by_type,
+          ...(statsData?.by_type ?? {})
+        }
       }
-      
-      try {
-        const usersRes = await api.get('/api/v1/users')
-        setUsers(Array.isArray(usersRes.data) ? usersRes.data : [])
-      } catch (error) {
-        console.error('Failed to fetch users:', error)
-        setUsers([])
-      }
-      
-      try {
-        const alertsRes = await api.get('/api/v1/sos/', {
-          params: { limit: 20 }
-        })
-        setAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : [])
-      } catch (error) {
-        console.error('Failed to fetch alerts:', error)
-        setAlerts([])
-      }
-      
-      try {
-        const responseRes = await api.get('/api/v1/analytics/reports/response-time')
-        setResponseTime(responseRes.data)
-      } catch (error) {
-        console.error('Failed to fetch response time:', error)
-        setResponseTime({ average_response_time_minutes: 0 })
-      }
+
+      setStats(mergedStats)
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : [])
+      setAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : [])
     } catch (error) {
       console.error('Failed to fetch admin data:', error)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadData(false)
   }
 
   const handleChangeUserRole = async (userId: string, role: string) => {
     try {
       await api.patch(`/api/v1/users/${userId}`, { role })
-      await fetchData()
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: role as UserRole } : u)))
     } catch (error) {
-      console.error('Failed to change role:', error)
-      alert('Ошибка при изменении роли')
+      console.error('Failed to change user role:', error)
+      alert('Не удалось изменить роль пользователя')
     }
   }
 
-  const getRoleColor = (role: string) => {
-    const colors: Record<string, string> = {
-      admin: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-      coordinator: 'bg-gradient-to-r from-purple-400 to-pink-400 text-white',
-      operator: 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white',
-      rescuer: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white',
-      citizen: 'bg-gradient-to-r from-gray-400 to-gray-500 text-white'
-    }
-    return colors[role] || 'bg-gray-100 text-gray-800'
-  }
+  const statusEntries = useMemo(() =>
+    STATUS_ORDER.map((status) => ({
+      status,
+      value: stats.by_status?.[status] ?? 0
+    })), [stats.by_status])
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-      accepted: 'bg-blue-100 text-blue-800 border border-blue-200',
-      in_progress: 'bg-purple-100 text-purple-800 border border-purple-200',
-      completed: 'bg-green-100 text-green-800 border border-green-200',
-      cancelled: 'bg-gray-100 text-gray-800 border border-gray-200'
-    }
-    return colors[status] || 'bg-gray-100 text-gray-800'
-  }
+  const typeEntries = useMemo(() =>
+    TYPE_ORDER.map((type) => ({
+      type,
+      value: stats.by_type?.[type] ?? 0
+    })), [stats.by_type])
 
-  const getTypeIcon = (type: string) => {
-    const icons: Record<string, JSX.Element> = {
-      fire: <Flame className="w-5 h-5 text-orange-500" />,
-      medical: <Heart className="w-5 h-5 text-red-500" />,
-      police: <Shield className="w-5 h-5 text-blue-500" />,
-      water_rescue: <Waves className="w-5 h-5 text-cyan-500" />,
-      mountain_rescue: <Mountain className="w-5 h-5 text-gray-600" />,
-      search_rescue: <Search className="w-5 h-5 text-purple-500" />,
-      ecological: <Leaf className="w-5 h-5 text-green-600" />,
-      general: <AlertTriangle className="w-5 h-5 text-yellow-500" />
-    }
-    return icons[type] || icons.general
-  }
+  const verifiedUsers = useMemo(() => users.filter((u) => u.is_verified).length, [users])
+  const activeOperators = useMemo(() => users.filter((u) => u.role === 'operator').length, [users])
+  const totalRescuers = useMemo(() => users.filter((u) => u.role === 'rescuer').length, [users])
 
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      fire: 'Пожар',
-      medical: 'Медицина',
-      police: 'Полиция',
-      water_rescue: 'Спасение на воде',
-      mountain_rescue: 'Горная спасательная',
-      search_rescue: 'Поисково-спасательная',
-      ecological: 'Экологическая',
-      general: 'Общая'
-    }
-    return labels[type] || type
-  }
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('ru-RU')
-  }
-
-  const formatDateTime = (date: string) => {
-    return new Date(date).toLocaleString('ru-RU')
-  }
+  const criticalAlerts = useMemo(
+    () => alerts.filter((alert) => ['pending', 'assigned'].includes(alert.status)),
+    [alerts]
+  )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
-      {/* Modern Header with Glass Effect */}
-      <header className="bg-white/80 backdrop-blur-xl shadow-lg border-b border-white/20 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(129,140,248,0.25),transparent_55%)]" />
+
+      <div className="relative">
+        <header className="border-b border-white/10 bg-slate-900/40 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
             <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-3 rounded-xl shadow-lg">
-                <UserCog className="w-8 h-8 text-white" />
+              <div className="rounded-3xl border border-white/20 bg-white/10 p-4 shadow-[0_25px_70px_rgba(129,140,248,0.45)]">
+                <UserCog className="h-10 w-10 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
-                  Панель администратора
-                </h1>
-                <p className="text-purple-600 mt-1 font-medium">
+                <p className="text-sm font-medium text-white/60">Rescue Command Center</p>
+                <h1 className="text-3xl font-semibold">Панель администратора</h1>
+                <p className="mt-1 text-sm text-white/60">
                   {user?.full_name || user?.email} • Полный контроль системы
                 </p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Выход</span>
-            </button>
-          </div>
-        </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Enhanced Stats Cards with Gradients and Animations */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="group bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all hover:scale-105">
-              <div className="flex items-center justify-between mb-4">
-                <AlertCircle className="w-12 h-12 opacity-90 group-hover:scale-110 transition-transform" />
-                <div className="text-right">
-                  <p className="text-blue-100 text-sm font-medium mb-1">Всего тревог</p>
-                  <p className="text-5xl font-bold">{stats.total_alerts}</p>
-                </div>
-              </div>
-              <div className="h-1 bg-white/30 rounded-full overflow-hidden">
-                <div className="h-full bg-white/60 rounded-full w-3/4"></div>
-              </div>
-            </div>
-            
-            <div className="group bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 text-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all hover:scale-105">
-              <div className="flex items-center justify-between mb-4">
-                <Clock className="w-12 h-12 opacity-90 group-hover:scale-110 transition-transform" />
-                <div className="text-right">
-                  <p className="text-orange-100 text-sm font-medium mb-1">Активные</p>
-                  <p className="text-5xl font-bold">{stats.active_alerts}</p>
-                </div>
-              </div>
-              <div className="h-1 bg-white/30 rounded-full overflow-hidden">
-                <div className="h-full bg-white/60 rounded-full w-1/2 animate-pulse"></div>
-              </div>
-            </div>
-            
-            <div className="group bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 text-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all hover:scale-105">
-              <div className="flex items-center justify-between mb-4">
-                <CheckCircle className="w-12 h-12 opacity-90 group-hover:scale-110 transition-transform" />
-                <div className="text-right">
-                  <p className="text-green-100 text-sm font-medium mb-1">Завершено</p>
-                  <p className="text-5xl font-bold">{stats.by_status?.completed || 0}</p>
-                </div>
-              </div>
-              <div className="h-1 bg-white/30 rounded-full overflow-hidden">
-                <div className="h-full bg-white/60 rounded-full w-full"></div>
-              </div>
-            </div>
-            
-            <div className="group bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 text-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all hover:scale-105">
-              <div className="flex items-center justify-between mb-4">
-                <Users className="w-12 h-12 opacity-90 group-hover:scale-110 transition-transform" />
-                <div className="text-right">
-                  <p className="text-purple-100 text-sm font-medium mb-1">Пользователи</p>
-                  <p className="text-5xl font-bold">{users.length}</p>
-                </div>
-              </div>
-              <div className="h-1 bg-white/30 rounded-full overflow-hidden">
-                <div className="h-full bg-white/60 rounded-full w-5/6"></div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Performance Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 p-4 rounded-xl">
-                <TrendingUp className="w-7 h-7 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 font-medium">Сегодня</p>
-                <p className="text-3xl font-bold text-gray-900">{stats?.today_alerts || 0}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-gradient-to-br from-green-100 to-emerald-100 p-4 rounded-xl">
-                <Activity className="w-7 h-7 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 font-medium">Среднее время</p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {responseTime?.average_response_time_minutes.toFixed(1) || 0} мин
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
-            <button
-              onClick={fetchData}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg hover:shadow-xl"
-            >
-              <RefreshCw className={`w-6 h-6 ${loading ? 'animate-spin' : ''}`} />
-              Обновить данные
-            </button>
-          </div>
-        </div>
-
-        {/* Modern Tabs */}
-        <div className="bg-white rounded-2xl shadow-lg mb-8 overflow-hidden border border-gray-100">
-          <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-            <div className="flex">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setActiveTab('overview')}
-                className={`flex items-center gap-2 px-8 py-4 font-semibold transition-all ${
-                  activeTab === 'overview'
-                    ? 'border-b-3 border-purple-600 text-purple-600 bg-purple-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+                onClick={handleRefresh}
+                className="btn-glass flex items-center gap-2 text-sm font-semibold"
+                aria-label="Обновить данные"
               >
-                <BarChart3 className="w-5 h-5" />
-                Обзор системы
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Обновить
               </button>
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`flex items-center gap-2 px-8 py-4 font-semibold transition-all ${
-                  activeTab === 'users'
-                    ? 'border-b-3 border-purple-600 text-purple-600 bg-purple-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <Users className="w-5 h-5" />
-                Пользователи ({users.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('alerts')}
-                className={`flex items-center gap-2 px-8 py-4 font-semibold transition-all ${
-                  activeTab === 'alerts'
-                    ? 'border-b-3 border-purple-600 text-purple-600 bg-purple-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <AlertCircle className="w-5 h-5" />
-                Последние тревоги ({alerts.length})
+              <button onClick={logout} className="btn-glass flex items-center gap-2 text-sm font-semibold">
+                <LogOut className="h-4 w-4" />
+                Выйти
               </button>
             </div>
           </div>
+        </header>
 
-          <div className="p-8">
-            {/* Overview Tab */}
-            {activeTab === 'overview' && stats && (
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                  <BarChart3 className="w-7 h-7 text-purple-600" />
-                  Статистика по типам тревог
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
-                  {Object.entries(stats.by_type || {}).map(([type, count]) => (
-                    <div key={type} className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all hover:scale-105">
-                      <div className="flex items-center gap-3 mb-3">
-                        {getTypeIcon(type)}
-                        <span className="text-sm text-gray-700 font-medium">{getTypeLabel(type)}</span>
+        <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <section className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-purple-500/30 to-purple-700/20 p-6 shadow-[0_20px_60px_rgba(76,29,149,0.35)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white/60">Всего тревог</p>
+                  <p className="mt-2 text-4xl font-bold">{stats.total_alerts}</p>
+                </div>
+                <div className="rounded-2xl bg-white/15 p-3">
+                  <BarChart3 className="h-6 w-6 text-purple-100" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-sm text-purple-100/80">
+                <TrendingUp className="h-4 w-4" />
+                {stats.today_alerts} за сегодня
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/30 to-orange-500/20 p-6 shadow-[0_20px_60px_rgba(225,29,72,0.3)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white/60">Активные тревоги</p>
+                  <p className="mt-2 text-4xl font-bold">{stats.active_alerts}</p>
+                </div>
+                <div className="rounded-2xl bg-white/15 p-3">
+                  <AlertTriangle className="h-6 w-6 text-rose-100" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-sm text-rose-100/80">
+                <Bell className="h-4 w-4" />
+                {criticalAlerts.length} требуют реакции
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-500/30 to-emerald-700/20 p-6 shadow-[0_20px_60px_rgba(16,185,129,0.3)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white/60">Верфицированные пользователи</p>
+                  <p className="mt-2 text-4xl font-bold">{verifiedUsers}</p>
+                </div>
+                <div className="rounded-2xl bg-white/15 p-3">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-100" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-sm text-emerald-100/80">
+                <Users className="h-4 w-4" />
+                Всего пользователей: {users.length}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-sky-500/30 to-indigo-500/20 p-6 shadow-[0_20px_60px_rgba(14,165,233,0.3)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white/60">Команда реагирования</p>
+                  <p className="mt-2 text-4xl font-bold">{activeOperators}</p>
+                </div>
+                <div className="rounded-2xl bg-white/15 p-3">
+                  <Shield className="h-6 w-6 text-sky-100" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-sm text-sky-100/80">
+                <Target className="h-4 w-4" />
+                Спасателей в системе: {totalRescuers}
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-12">
+            <div className="flex flex-wrap items-center gap-3">
+              {([
+                { key: 'overview', label: 'Обзор' },
+                { key: 'users', label: 'Пользователи' },
+                { key: 'alerts', label: 'Тревоги' }
+              ] as const).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`rounded-2xl px-5 py-2 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60 ${
+                    activeTab === tab.key
+                      ? 'bg-white/15 text-white shadow-[0_18px_45px_rgba(255,255,255,0.12)]'
+                      : 'text-white/50 hover:text-white hover:bg-white/10'
+                  }`}
+                  type="button"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-10">
+            {activeTab === 'overview' && (
+              <div className="grid gap-8 lg:grid-cols-2">
+                <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xl">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Распределение по статусу</h2>
+                    <Clock className="h-5 w-5 text-white/40" />
+                  </div>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    {statusEntries.map(({ status, value }) => (
+                      <div key={status} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-white/60">{STATUS_LABELS[status]}</span>
+                          <span
+                            className={`inline-flex items-center gap-2 rounded-xl px-3 py-1 text-xs font-semibold ${STATUS_COLORS[status]}`}
+                          >
+                            <Target className="h-3.5 w-3.5" />
+                            {value}
+                          </span>
+                        </div>
+                        <div className="mt-3 h-2 rounded-full bg-white/5">
+                          <div
+                            className={`h-full rounded-full bg-gradient-to-r from-white/70 to-white ${getProgressWidthClass(value, stats.total_alerts)}`}
+                            aria-hidden="true"
+                          />
+                        </div>
                       </div>
-                      <p className="text-3xl font-bold text-gray-900">{count}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
 
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                  <Activity className="w-7 h-7 text-purple-600" />
-                  Статистика по статусам
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                  {Object.entries(stats.by_status || {}).map(([status, count]) => (
-                    <div key={status} className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:shadow-lg transition-all hover:scale-105">
-                      <span className={`inline-flex px-4 py-2 rounded-xl text-xs font-bold mb-3 ${getStatusColor(status)}`}>
-                        {status}
-                      </span>
-                      <p className="text-3xl font-bold text-gray-900">{count}</p>
-                    </div>
-                  ))}
+                <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xl">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Типы происшествий</h2>
+                    <AlertCircle className="h-5 w-5 text-white/40" />
+                  </div>
+                  <div className="mt-6 space-y-4">
+                    {typeEntries.map(({ type, value }) => (
+                      <div
+                        key={type}
+                        className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-2xl bg-gradient-to-br from-white/20 to-white/5 p-2">
+                            {getTypeIcon(type)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-white">{TYPE_LABELS[type]}</p>
+                            <p className="text-xs text-white/50">{value} случаев</p>
+                          </div>
+                        </div>
+                        <span className="text-lg font-semibold text-white/80">{value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Users Tab */}
             {activeTab === 'users' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                    <Users className="w-7 h-7 text-purple-600" />
-                    Управление пользователями
-                  </h3>
-                  <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl font-medium">
-                    <Settings className="w-5 h-5" />
-                    Настройки
-                  </button>
+              <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xl">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold">Управление пользователями</h2>
+                    <p className="text-sm text-white/50">Контролируйте роли и статус доступа</p>
+                  </div>
+                  <span className="stat-pill bg-white/10 text-white">
+                    Активных аккаунтов: {users.filter((u) => u.is_active).length}
+                  </span>
                 </div>
-                <div className="overflow-x-auto rounded-xl border border-gray-200">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Email</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Имя</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Роль</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Дата регистрации</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Действия</th>
+
+                <div className="overflow-x-auto rounded-2xl border border-white/10">
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/5">
+                      <tr className="text-left text-xs uppercase tracking-wide text-white/50">
+                        <th className="px-6 py-4">Email</th>
+                        <th className="px-6 py-4">Имя</th>
+                        <th className="px-6 py-4">Роль</th>
+                        <th className="px-6 py-4">Статус</th>
+                        <th className="px-6 py-4">Регистрация</th>
+                        <th className="px-6 py-4">Действия</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="divide-y divide-white/5">
                       {loading ? (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                          <td colSpan={6} className="px-6 py-12 text-center text-white/50">
                             <div className="flex flex-col items-center gap-3">
-                              <RefreshCw className="w-8 h-8 animate-spin text-purple-600" />
-                              <span className="font-medium">Загрузка данных...</span>
+                              <RefreshCw className="h-8 w-8 animate-spin text-white/40" />
+                              <span>Загрузка пользователей…</span>
                             </div>
                           </td>
                         </tr>
                       ) : users.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                          <td colSpan={6} className="px-6 py-12 text-center text-white/50">
                             <div className="flex flex-col items-center gap-3">
-                              <Users className="w-12 h-12 text-gray-400" />
-                              <span className="font-medium">Нет пользователей в системе</span>
+                              <Users className="h-10 w-10 text-white/30" />
+                              <span>Пользователи пока не добавлены</span>
                             </div>
                           </td>
                         </tr>
                       ) : (
                         users.map((u) => (
-                          <tr key={u.id} className="hover:bg-purple-50 transition-colors">
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{u.email}</td>
-                            <td className="px-6 py-4 text-sm text-gray-900">{u.full_name || '-'}</td>
+                          <tr key={u.id} className="text-sm text-white/80">
+                            <td className="px-6 py-4 font-semibold text-white">{u.email}</td>
+                            <td className="px-6 py-4">{u.full_name || '—'}</td>
                             <td className="px-6 py-4">
-                              <span className={`px-4 py-2 rounded-xl text-xs font-bold ${getRoleColor(u.role)} shadow-md`}>
+                              <span className={`inline-flex items-center gap-2 rounded-2xl px-3 py-1 text-xs font-semibold ${ROLE_STYLES[u.role]}`}>
+                                <Shield className="h-3.5 w-3.5" />
                                 {u.role}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{formatDate(u.created_at)}</td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center gap-2 rounded-2xl px-3 py-1 text-xs font-semibold ${
+                                u.is_active ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30' : 'bg-slate-500/15 text-slate-200 border border-slate-400/30'
+                              }`}>
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                {u.is_active ? 'Активен' : 'Неактивен'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-white/60">{formatDate(u.created_at)}</td>
                             <td className="px-6 py-4">
                               <select
                                 value={u.role}
-                                onChange={(e) => handleChangeUserRole(u.id, e.target.value)}
-                                className="px-4 py-2 border-2 border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:border-purple-400 transition-colors"
+                                onChange={(event) => handleChangeUserRole(u.id, event.target.value)}
+                                className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-xs text-white/80 focus:outline-none focus:ring-2 focus:ring-rose-400/60"
+                                aria-label={`Изменить роль пользователя ${u.email}`}
                               >
-                                <option value="citizen">Гражданин</option>
-                                <option value="rescuer">Спасатель</option>
-                                <option value="operator">Оператор</option>
-                                <option value="coordinator">Координатор</option>
-                                <option value="admin">Админ</option>
+                                {Object.keys(ROLE_STYLES).map((role) => (
+                                  <option key={role} value={role}>
+                                    {role}
+                                  </option>
+                                ))}
                               </select>
                             </td>
                           </tr>
@@ -450,59 +513,90 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Alerts Tab */}
             {activeTab === 'alerts' && (
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                  <AlertCircle className="w-7 h-7 text-purple-600" />
-                  Последние тревоги
-                </h3>
+              <div className="space-y-4">
                 {loading ? (
-                  <div className="flex flex-col items-center gap-3 py-12">
-                    <RefreshCw className="w-12 h-12 animate-spin text-purple-600" />
-                    <span className="font-medium text-gray-500">Загрузка тревог...</span>
+                  <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-12 text-center text-white/60">
+                    <RefreshCw className="mx-auto h-10 w-10 animate-spin text-white/40" />
+                    <p className="mt-4 font-medium">Загрузка тревог…</p>
                   </div>
                 ) : alerts.length === 0 ? (
-                  <div className="flex flex-col items-center gap-3 py-12 bg-white rounded-xl border-2 border-gray-200">
-                    <AlertCircle className="w-16 h-16 text-gray-400" />
-                    <span className="font-medium text-gray-500">Нет тревог в системе</span>
+                  <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-12 text-center text-white/60">
+                    <AlertCircle className="mx-auto h-10 w-10 text-white/30" />
+                    <p className="mt-4 font-medium">Нет зарегистрированных тревог</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {alerts.map((alert) => (
-                      <div key={alert.id} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-purple-300 hover:shadow-lg transition-all">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-3">
-                              <div className="bg-gradient-to-br from-purple-100 to-pink-100 p-3 rounded-xl">
+                  alerts.map((alert) => {
+                    const hasLocation = alert.latitude != null && alert.longitude != null
+                    return (
+                      <div
+                        key={alert.id}
+                        className="rounded-3xl border border-white/10 bg-slate-900/50 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.45)] transition-transform duration-200 hover:-translate-y-1 hover:bg-slate-900/60"
+                      >
+                        <div className="flex flex-col gap-4 lg:flex-row lg:justify-between">
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className="rounded-2xl bg-gradient-to-br from-white/20 to-white/5 p-3">
                                 {getTypeIcon(alert.type)}
                               </div>
-                              <div className="flex-1">
-                                <h4 className="font-bold text-gray-900 text-lg">
-                                  {alert.title || `Тревога: ${getTypeLabel(alert.type)}`}
-                                </h4>
-                                <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-bold mt-1 ${getStatusColor(alert.status)}`}>
-                                  {alert.status}
-                                </span>
+                              <div>
+                                <h3 className="text-lg font-semibold text-white">
+                                  {alert.title || TYPE_LABELS[alert.type] || 'Сигнал SOS'}
+                                </h3>
+                                <p className="text-xs text-white/50">{formatDateTime(alert.created_at)}</p>
                               </div>
+                              <span
+                                className={`inline-flex items-center gap-2 rounded-2xl px-3 py-1 text-[11px] font-semibold ${
+                                  STATUS_COLORS[alert.status] ?? STATUS_COLORS.pending
+                                }`}
+                              >
+                                <Bell className="h-3.5 w-3.5" />
+                                {STATUS_LABELS[alert.status] || alert.status}
+                              </span>
+                              <span className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/70">
+                                Приоритет P{alert.priority}
+                              </span>
                             </div>
-                            <p className="text-sm text-gray-700 mb-3 ml-16">{alert.description}</p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500 ml-16">
-                              <span className="font-medium">Приоритет: <span className="text-purple-600">{alert.priority}</span></span>
-                              <span>•</span>
-                              <span>{formatDateTime(alert.created_at)}</span>
+                            {alert.description && (
+                              <p className="text-sm leading-relaxed text-white/70">{alert.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-2 text-xs text-white/60">
+                              <span className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-1 font-mono">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {hasLocation
+                                  ? `${Number(alert.latitude).toFixed(4)}, ${Number(alert.longitude).toFixed(4)}`
+                                  : 'Координаты не указаны'}
+                              </span>
+                              <span className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {formatDateTime(alert.updated_at)}
+                              </span>
+                              {alert.team_name && (
+                                <span className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-1">
+                                  <Shield className="h-3.5 w-3.5" />
+                                  {alert.team_name}
+                                </span>
+                              )}
+                              {alert.assigned_to_name && (
+                                <span className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-1">
+                                  <Users className="h-3.5 w-3.5" />
+                                  {alert.assigned_to_name}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    )
+                  })
                 )}
               </div>
             )}
-          </div>
-        </div>
-      </main>
+          </section>
+        </main>
+      </div>
     </div>
   )
 }
+
+export default AdminDashboard

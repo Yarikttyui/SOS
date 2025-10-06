@@ -316,9 +316,11 @@ export function CoordinatorDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select
+                          id={`rescuer-specialization-${rescuer.id}`}
                           value={rescuer.specialization || ''}
                           onChange={(e) => handleUpdateSpecialization(rescuer.id, e.target.value as RescuerSpecialization)}
                           className="px-4 py-2 border-2 border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:border-purple-400 transition-colors"
+                          aria-label={`Специализация для спасателя ${rescuer.full_name || rescuer.email}`}
                         >
                           <option value="">Выберите специализацию</option>
                           <option value="firefighter">🔥 Пожарный</option>
@@ -465,10 +467,11 @@ export function CoordinatorDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2" htmlFor="create-team-type">
                     Тип бригады
                   </label>
                   <select
+                    id="create-team-type"
                     value={newTeam.type}
                     onChange={(e) => setNewTeam({...newTeam, type: e.target.value as any})}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors font-medium"
@@ -515,10 +518,11 @@ export function CoordinatorDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2" htmlFor="create-team-leader">
                     Лидер бригады
                   </label>
                   <select
+                    id="create-team-leader"
                     value={newTeam.leader_id}
                     onChange={(e) => setNewTeam({...newTeam, leader_id: e.target.value})}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors font-medium"

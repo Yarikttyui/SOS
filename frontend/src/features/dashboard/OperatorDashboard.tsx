@@ -225,6 +225,7 @@ export default function OperatorDashboard() {
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="input-modern flex-1"
+                aria-label="Фильтр по статусу тревоги"
               >
                 <option value="all">Все статусы</option>
                 <option value="pending">Ожидание</option>
@@ -238,6 +239,7 @@ export default function OperatorDashboard() {
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
                 className="input-modern flex-1"
+                aria-label="Фильтр по типу тревоги"
               >
                 <option value="all">Все типы</option>
                 <option value="fire">🔥 Пожар</option>

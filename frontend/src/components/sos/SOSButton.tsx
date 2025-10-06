@@ -384,14 +384,62 @@ export default function SOSButton() {
   }
 
   const emergencyTypes = [
-    { value: 'fire', label: '🔥 Пожар', color: 'red' },
-    { value: 'medical', label: '🚑 Медицинская помощь', color: 'blue' },
-    { value: 'police', label: '👮 Полиция', color: 'indigo' },
-    { value: 'water_rescue', label: '🚤 Спасение на воде', color: 'cyan' },
-    { value: 'mountain_rescue', label: '⛰️ Горноспасательная', color: 'yellow' },
-    { value: 'search_rescue', label: '🔍 Поисково-спасательная', color: 'purple' },
-    { value: 'ecological', label: '☢️ Экологическая', color: 'green' },
-    { value: 'general', label: '⚠️ Общая ситуация', color: 'gray' },
+    {
+      value: 'fire',
+      icon: '🔥',
+      title: 'Пожар',
+      description: 'Пламя, задымление, запах гари',
+      accent: 'from-rose-500/40 via-red-500/30 to-amber-400/30',
+    },
+    {
+      value: 'medical',
+      icon: '🚑',
+      title: 'Медицинская помощь',
+      description: 'Травмы, потеря сознания, реанимация',
+      accent: 'from-sky-500/40 via-blue-500/30 to-indigo-400/25',
+    },
+    {
+      value: 'police',
+      icon: '👮',
+      title: 'Полиция',
+      description: 'Угроза безопасности, правонарушения',
+      accent: 'from-indigo-500/40 via-indigo-400/30 to-slate-400/25',
+    },
+    {
+      value: 'water_rescue',
+      icon: '🚤',
+      title: 'Спасение на воде',
+      description: 'Течение, утопление, наводнение',
+      accent: 'from-cyan-400/40 via-sky-400/30 to-blue-400/25',
+    },
+    {
+      value: 'mountain_rescue',
+      icon: '⛰️',
+      title: 'Горноспасательная',
+      description: 'Лавина, обрыв, потеря ориентира',
+      accent: 'from-amber-400/40 via-yellow-500/25 to-lime-400/20',
+    },
+    {
+      value: 'search_rescue',
+      icon: '🔍',
+      title: 'Поисково-спасательная',
+      description: 'Пропавшие люди, разведка местности',
+      accent: 'from-purple-500/40 via-violet-500/30 to-pink-400/25',
+    },
+    {
+      value: 'ecological',
+      icon: '☢️',
+      title: 'Экологическая',
+      description: 'Химическая опасность, утечка газа',
+      accent: 'from-emerald-500/40 via-green-500/25 to-lime-400/20',
+    },
+    {
+      value: 'general',
+      icon: '⚠️',
+      title: 'Общая ситуация',
+      description: 'Иной инцидент, требующий помощи',
+      accent: 'from-slate-400/40 via-slate-500/25 to-zinc-500/20',
+    },
   ]
 
   return (
@@ -436,247 +484,345 @@ export default function SOSButton() {
 
       {/* Emergency Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="card-modern max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="sticky top-0 bg-gradient-emergency text-white p-5 sm:p-6 rounded-t-2xl z-10 shadow-sm">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
-                    <AlertCircle className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/70 shadow-[0_40px_120px_rgba(15,23,42,0.55)] backdrop-blur-2xl">
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute -top-32 -left-40 h-72 w-72 bg-rose-500/25 blur-[140px]" />
+              <div className="absolute -bottom-36 -right-24 h-72 w-72 bg-sky-500/25 blur-[150px]" />
+              <div className="absolute top-1/3 left-1/2 h-52 w-52 -translate-x-1/2 bg-amber-400/10 blur-[140px]" />
+            </div>
+            <div className="relative flex max-h-[92vh] flex-col">
+              <div className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/85 px-6 py-5 backdrop-blur-xl">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-2xl border border-white/20 bg-white/10 p-2">
+                      <AlertCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="section-title text-white/60">Экстренное обращение</p>
+                      <h2 className="text-2xl font-semibold text-white">Вызов спасателей</h2>
+                      <p className="text-xs text-white/60">
+                        Уточните детали, чтобы команды отреагировали максимально быстро
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-bold">
-                      Экстренный вызов
-                    </h2>
-                    <p className="text-sm opacity-90">Заполните информацию о ситуации</p>
+                  <div className="flex items-center gap-2">
+                    <span className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+                      <Sparkles className="h-4 w-4" />
+                      AI-приоритизация активна
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                      aria-label="Закрыть окно"
+                      className="btn-glass text-xs font-semibold uppercase tracking-wide"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      <span className="hidden sm:inline">Закрыть</span>
+                    </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  aria-label="Закрыть окно"
-                  className="inline-flex items-center gap-2 bg-white/90 text-red-600 font-semibold px-3 py-2 rounded-xl shadow-sm transition-all hover:bg-white"
-                >
-                  <XCircle className="w-5 h-5" />
-                  <span className="hidden sm:inline">Закрыть</span>
-                </button>
               </div>
-            </div>
 
-            <div className="p-5 sm:p-6 space-y-6">
-              {/* Location Info */}
-              <div className="card-modern bg-gradient-to-br from-blue-50 to-indigo-50 p-4 border-2 border-blue-200">
-                <div className="flex items-start gap-3">
-                  <div className="bg-blue-100 p-2 rounded-xl">
-                    <MapPin className="w-5 h-5 text-blue-600" />
+              <div className="space-y-7 overflow-y-auto px-6 pb-8 pt-6">
+                <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60 p-5 sm:p-6 shadow-[0_30px_80px_rgba(15,23,42,0.45)]">
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute -top-16 -left-24 h-44 w-44 bg-sky-500/30 blur-[100px]" />
+                    <div className="absolute bottom-0 right-0 h-40 w-40 bg-emerald-400/20 blur-[110px]" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-900 mb-1">📍 Ваше местоположение</p>
-                    {locationLoading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-sm text-gray-600">Определение GPS...</p>
+                  <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-2xl border border-sky-300/40 bg-sky-400/15 p-3 text-sky-100">
+                        <MapPin className="h-5 w-5" />
                       </div>
-                    ) : hasCoordinates ? (
-                      <div>
-                        <p className="text-sm font-mono text-gray-700 bg-white px-2 py-1 rounded">
-                          {latitude?.toFixed(6)}, {longitude?.toFixed(6)}
-                        </p>
-                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                          ✓ {locationSource === 'gps' ? 'Координаты получены через GPS' : 'Используются приблизительные координаты'}
-                        </p>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">Ваше местоположение</p>
+                          <p className="text-xs text-white/50">
+                            Координаты передаются диспетчерам в защищённом канале
+                          </p>
+                        </div>
+                        {locationLoading ? (
+                          <div className="flex items-center gap-2 text-sm text-white/80">
+                            <span className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-transparent" />
+                            Определяем GPS…
+                          </div>
+                        ) : hasCoordinates ? (
+                          <div className="flex flex-col gap-3">
+                            <span className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 font-mono text-sm text-white">
+                              <span>{latitude?.toFixed(6)}</span>
+                              <span className="text-white/40">,</span>
+                              <span>{longitude?.toFixed(6)}</span>
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-3 py-1 font-semibold text-emerald-200">
+                                ✓ {locationSource === 'gps' ? 'GPS-точность' : 'Используются уточнённые координаты'}
+                              </span>
+                              {accuracy && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-white/70">
+                                  ± {Math.round(accuracy)} м
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setUseManualLocation((prev) => !prev)}
+                                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/70 transition hover:border-white/30 hover:text-white"
+                              >
+                                {useManualLocation ? 'Скрыть ручной ввод' : 'Добавить вручную'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 text-sm text-white/80">
+                            <p className="font-semibold text-amber-200">
+                              ⚠️ Не удалось определить местоположение автоматически
+                            </p>
+                            {geoError && (
+                              <p className="text-xs text-rose-200 leading-snug">{geoError}</p>
+                            )}
+                            {geoMessage && (
+                              <p className="text-xs text-amber-200/80 leading-snug">{geoMessage}</p>
+                            )}
+                            <p className="text-xs text-white/60 leading-snug">
+                              Укажите координаты вручную или повторите попытку. При отсутствии данных будет применено
+                              резервное расположение ({FALLBACK_LOCATION.latitude.toFixed(4)}, {FALLBACK_LOCATION.longitude.toFixed(4)}).
+                            </p>
+                            <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                              <button
+                                type="button"
+                                onClick={getLocation}
+                                className="inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-sky-100 transition-colors hover:border-sky-300/60 hover:text-white"
+                              >
+                                Повторить попытку
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setUseManualLocation((prev) => !prev)}
+                                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/70 transition hover:border-white/30 hover:text-white"
+                              >
+                                {useManualLocation ? 'Скрыть ручной ввод' : 'Ввести координаты вручную'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {useManualLocation && (
+                          <div className="relative mt-5 rounded-2xl border border-white/10 bg-slate-950/70 p-4 sm:p-5">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div className="space-y-2">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                                  Широта
+                                </label>
+                                <input
+                                  type="text"
+                                  value={manualLatitude}
+                                  onChange={(e) => setManualLatitude(e.target.value)}
+                                  className="input-modern text-sm"
+                                  placeholder="Например, 56.8587"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                                  Долгота
+                                </label>
+                                <input
+                                  type="text"
+                                  value={manualLongitude}
+                                  onChange={(e) => setManualLongitude(e.target.value)}
+                                  className="input-modern text-sm"
+                                  placeholder="Например, 35.9176"
+                                />
+                              </div>
+                            </div>
+                            <p className="mt-3 text-xs text-white/50">
+                              Используйте десятичный формат. Поля можно оставить пустыми — система подставит резервные координаты.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {hasCoordinates && (
+                      <div className="flex flex-col items-start gap-3 text-xs text-white/70">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1">
+                          Источник: {locationSource === 'gps' ? 'Satellite/GPS' : 'Сети и сервисы'}
+                        </span>
                         {accuracy && (
-                          <p className="text-xs text-gray-500">± {Math.round(accuracy)} м</p>
+                          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1">
+                            Точность {Math.round(accuracy)} м
+                          </span>
                         )}
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-sm text-red-600 font-medium">⚠️ Не удалось определить местоположение автоматически</p>
-                        {geoError && (
-                          <p className="text-xs text-red-500 leading-snug">{geoError}</p>
-                        )}
-                        {geoMessage && (
-                          <p className="text-xs text-amber-600 leading-snug">{geoMessage}</p>
-                        )}
-                        <p className="text-xs text-gray-600 leading-snug">
-                          Вы можете повторить попытку или ввести координаты вручную. Если координаты не указаны, будет использовано резервное местоположение ({FALLBACK_LOCATION.latitude.toFixed(4)}, {FALLBACK_LOCATION.longitude.toFixed(4)}).
-                        </p>
                         <button
                           type="button"
                           onClick={getLocation}
-                          className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-700 underline"
+                          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/70 transition hover:border-white/30 hover:text-white"
                         >
-                          Повторить попытку определения
+                          Обновить координаты
                         </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-6 backdrop-blur-xl shadow-[0_28px_70px_rgba(15,23,42,0.38)]">
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute -top-12 right-0 h-40 w-40 bg-rose-400/15 blur-[120px]" />
+                    <div className="absolute bottom-0 left-[-60px] h-48 w-48 bg-purple-500/15 blur-[110px]" />
+                  </div>
+                  <div className="relative space-y-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                      <div>
+                        <p className="section-title text-white/60">Тип чрезвычайной ситуации</p>
+                        <h3 className="text-xl font-semibold text-white">Что произошло?</h3>
+                      </div>
+                      <p className="text-xs text-white/50 sm:text-right">
+                        Выберите категорию — это влияет на приоритет и состав бригады
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                      {emergencyTypes.map((type) => (
                         <button
+                          key={type.value}
                           type="button"
-                          onClick={() => setUseManualLocation(prev => !prev)}
-                          className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-700"
+                          onClick={() => setEmergencyType(type.value as EmergencyType)}
+                          className={`group relative overflow-hidden rounded-2xl border px-4 py-5 text-left transition-all duration-200 ${
+                            emergencyType === type.value
+                              ? 'border-rose-300/80 bg-white/10 shadow-[0_20px_45px_rgba(244,114,182,0.35)] ring-2 ring-rose-300/50'
+                              : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                          }`}
                         >
-                          {useManualLocation ? 'Скрыть ручной ввод' : 'Ввести координаты вручную'}
+                          <div
+                            className={`pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-60 ${
+                              emergencyType === type.value ? 'opacity-80' : ''
+                            } bg-gradient-to-br ${type.accent}`}
+                          />
+                          <div className="relative z-10 flex flex-col gap-3 text-white">
+                            <span className="text-3xl leading-none">{type.icon}</span>
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold">{type.title}</p>
+                              <p className="text-xs leading-snug text-white/70">{type.description}</p>
+                            </div>
+                          </div>
+                          {emergencyType === type.value && (
+                            <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+                              ✓ Выбрано
+                            </span>
+                          )}
                         </button>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60 p-5 sm:p-6 shadow-[0_28px_70px_rgba(15,23,42,0.4)] backdrop-blur-xl">
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute top-0 right-[-60px] h-48 w-48 bg-rose-500/20 blur-[130px]" />
+                  </div>
+                  <div className="relative grid gap-5 lg:grid-cols-5">
+                    <div className="space-y-2 lg:col-span-2">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                        Заголовок (опционально)
+                      </label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="input-modern"
+                        placeholder="Например: ДТП на трассе, человек без сознания"
+                      />
+                    </div>
+                    <div className="space-y-2 lg:col-span-3">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                        Описание ситуации
+                      </label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={5}
+                        className="input-modern resize-none"
+                        placeholder="Опишите, что случилось, сколько пострадавших, опасные факторы, нужны ли специальные службы..."
+                      />
+                      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-white/60">
+                        <p>💡 Подробное описание ускорит реакцию и улучшит рекомендации AI</p>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-semibold text-white/70">
+                          {description.length} / 800
+                        </span>
                       </div>
-                    )}
-                    {useManualLocation && (
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">Широта</label>
-                          <input
-                            type="text"
-                            value={manualLatitude}
-                            onChange={(e) => setManualLatitude(e.target.value)}
-                            className="input-modern text-sm"
-                            placeholder="Например, 56.8587"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">Долгота</label>
-                          <input
-                            type="text"
-                            value={manualLongitude}
-                            onChange={(e) => setManualLongitude(e.target.value)}
-                            className="input-modern text-sm"
-                            placeholder="Например, 35.9176"
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 sm:col-span-2">
-                          Используйте десятичный формат. Если оставить поля пустыми, система подставит координаты города по умолчанию.
-                        </p>
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </section>
 
-              {/* Emergency Type Selection */}
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-3">
-                  🚨 Тип чрезвычайной ситуации
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {emergencyTypes.map((type) => (
-                    <button
-                      key={type.value}
-                      onClick={() => setEmergencyType(type.value as EmergencyType)}
-                      className={`
-                        p-3 sm:p-4 rounded-xl border-2 text-left transition-all transform hover:scale-105 active:scale-95
-                        ${emergencyType === type.value
-                          ? 'border-red-500 bg-red-50 shadow-md ring-2 ring-red-200'
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm bg-white'
-                        }
-                      `}
-                    >
-                      <span className="text-sm sm:text-base font-semibold block text-center">{type.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Title Input */}
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">
-                  📝 Заголовок (опционально)
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="input-modern"
-                  placeholder="Краткое описание ситуации..."
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">
-                  💬 Описание ситуации
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="input-modern resize-none"
-                  placeholder="Опишите подробно: что произошло, количество пострадавших, видимые опасности, особые условия..."
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Подробное описание поможет AI проанализировать ситуацию и дать рекомендации
-                </p>
-              </div>
-
-              {/* Error message */}
-              {error && (
-                <div className="card-modern bg-red-50 border-2 border-red-200 p-4 animate-fade-in">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                    <p className="text-sm font-medium text-red-700">{error}</p>
+                {error && (
+                  <div className="rounded-3xl border border-rose-400/50 bg-rose-500/10 p-4 text-sm text-rose-100 backdrop-blur">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-rose-200" />
+                      <p className="font-medium">{error}</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {successMessage && !showAIModal && (
-                <div className="card-modern bg-green-50 border-2 border-green-200 p-4 animate-fade-in">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    <p className="text-sm font-medium text-green-700">{successMessage}</p>
+                {successMessage && !showAIModal && (
+                  <div className="rounded-3xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-sm text-emerald-100 backdrop-blur">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-emerald-200" />
+                      <p className="font-medium">{successMessage}</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Voice Input Button */}
-              <button 
-                type="button"
-                className="w-full card-modern bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 p-4 hover:border-purple-400 hover:shadow-md transition-all group"
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <div className="bg-purple-100 p-2 rounded-xl group-hover:bg-purple-200 transition-colors">
-                    <Mic className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div className="text-left">
-                    <span className="block font-bold text-gray-900">Описать голосом</span>
-                    <span className="text-xs text-gray-600">Скоро будет доступно</span>
-                  </div>
-                </div>
-              </button>
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn-secondary flex-1"
+                  className="group relative w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-5 text-left shadow-[0_24px_60px_rgba(168,85,247,0.25)] transition hover:border-white/30 hover:bg-white/10"
                 >
-                  Отмена
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-sky-500/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="relative flex items-center justify-center gap-3">
+                    <div className="rounded-2xl border border-purple-300/40 bg-purple-500/15 p-3 text-purple-100">
+                      <Mic className="h-5 w-5" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-sm font-semibold text-white">Описать голосом</span>
+                      <span className="text-xs text-white/60">Скоро будет доступно</span>
+                    </div>
+                  </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSubmitEmergency}
-                  disabled={isSubmitting || isAnalyzing}
-                  className="btn-primary flex-1"
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Отправка...
-                    </span>
-                  ) : isAnalyzing ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Sparkles className="w-5 h-5 animate-pulse" />
-                      AI анализ...
-                    </span>
-                  ) : (
-                    '🚨 Отправить SOS'
-                  )}
-                </button>
-              </div>
 
-              {/* Warning */}
-              <div className="card-modern bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-gray-700">
-                    <span className="font-bold">Важно:</span> Ложный вызов экстренных служб преследуется по закону. 
-                    Убедитесь, что ситуация требует немедленного вмешательства.
-                  </p>
+                <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    Закрыть
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmitEmergency}
+                    disabled={isSubmitting || isAnalyzing}
+                    className="btn-primary flex-1"
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Отправка...
+                      </span>
+                    ) : isAnalyzing ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Sparkles className="h-5 w-5 animate-pulse" />
+                        AI анализ...
+                      </span>
+                    ) : (
+                      '🚨 Отправить SOS'
+                    )}
+                  </button>
+                </div>
+
+                <div className="relative overflow-hidden rounded-3xl border border-amber-400/40 bg-amber-500/10 p-4 text-sm text-amber-100 backdrop-blur">
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-rose-500/10" />
+                  <div className="relative flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-200" />
+                    <p>
+                      <span className="font-semibold">Важно:</span> Ложный вызов экстренных служб преследуется по закону.
+                      Убедитесь, что ситуация действительно требует немедленного вмешательства.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
