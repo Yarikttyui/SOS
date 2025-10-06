@@ -8,10 +8,13 @@ const normalizeBaseUrl = (url: string) => {
   return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed
 }
 
-const API_URL = normalizeBaseUrl(rawEnvUrl || fallbackUrl)
+export const API_BASE_URL = normalizeBaseUrl(rawEnvUrl || fallbackUrl)
+export const ANDROID_APK_URL = import.meta.env.VITE_ANDROID_APK_URL
+  ? normalizeBaseUrl(import.meta.env.VITE_ANDROID_APK_URL)
+  : `${API_BASE_URL}/api/v1/downloads/android`
 
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -38,7 +41,7 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refresh_token')
-        const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, {
+        const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
           refresh_token: refreshToken,
         })
 

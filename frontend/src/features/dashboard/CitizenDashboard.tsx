@@ -18,6 +18,8 @@ import {
   Waves,
 } from 'lucide-react'
 import type { SOSAlert } from '../../types'
+import { DownloadAppButton } from '../../components/DownloadAppButton'
+import { BackendStatusPill } from '../../components/BackendStatusPill'
 
 const TYPE_EMOJI: Record<string, string> = {
   fire: '🔥',
@@ -112,7 +114,7 @@ export default function CitizenDashboard() {
 
       <header className="relative z-20 border-b border-white/10 bg-slate-900/30 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
               <div className="relative p-3 rounded-2xl bg-gradient-to-br from-rose-500 via-red-500 to-orange-500 shadow-[0_20px_60px_rgba(244,114,182,0.45)]">
                 <span className="text-2xl">🚨</span>
@@ -126,25 +128,32 @@ export default function CitizenDashboard() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="stat-pill bg-white/20 text-white border-white/30">
-                <Activity className="w-4 h-4" />
-                Активно: <span className="font-semibold">{activeAlerts.length}</span>
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-end">
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <div className="stat-pill bg-white/20 text-white border-white/30 w-full sm:w-auto">
+                  <Activity className="w-4 h-4" />
+                  Активно: <span className="font-semibold">{activeAlerts.length}</span>
+                </div>
+                <div className="stat-pill bg-white/20 text-white border-white/30 w-full sm:w-auto">
+                  <Shield className="w-4 h-4" />
+                  Всего: <span className="font-semibold">{myAlerts.length}</span>
+                </div>
+                <BackendStatusPill dense />
               </div>
-              <div className="stat-pill bg-white/20 text-white border-white/30">
-                <Shield className="w-4 h-4" />
-                Всего: <span className="font-semibold">{myAlerts.length}</span>
+
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <DownloadAppButton variant="primary" compact />
+                <button onClick={logout} className="btn-glass flex items-center gap-2 text-sm font-semibold">
+                  <LogOut className="w-4 h-4" />
+                  Выйти
+                </button>
               </div>
-              <button onClick={logout} className="btn-glass flex items-center gap-2 text-sm font-semibold">
-                <LogOut className="w-4 h-4" />
-                Выйти
-              </button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
         <div className="rounded-3xl border border-amber-200/30 bg-amber-500/10 backdrop-blur-xl overflow-hidden">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-6 py-4">
             <div className="flex items-start gap-3">
@@ -194,7 +203,7 @@ export default function CitizenDashboard() {
                 <button
                   type="button"
                   onClick={() => navigate('/sos')}
-                  className="relative inline-flex items-center justify-center gap-3 overflow-hidden rounded-full border border-rose-400/40 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 px-8 py-4 text-lg font-semibold shadow-[0_24px_60px_rgba(244,114,182,0.45)] transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                  className="relative inline-flex w-full max-w-xs items-center justify-center gap-3 overflow-hidden rounded-full border border-rose-400/40 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 px-8 py-4 text-lg font-semibold shadow-[0_24px_60px_rgba(244,114,182,0.45)] transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 sm:w-auto"
                 >
                   <span className="text-2xl">🚨</span>
                   <span>Открыть окно SOS</span>

@@ -25,6 +25,8 @@ import {
   Compass
 } from 'lucide-react'
 import type { SOSAlert, RescueTeam } from '../../types'
+import { DownloadAppButton } from '../../components/DownloadAppButton'
+import { BackendStatusPill } from '../../components/BackendStatusPill'
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-500/15 border border-amber-400/40 text-amber-100',
@@ -472,28 +474,34 @@ export default function RescuerDashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                onClick={fetchData}
-                disabled={loading}
-                className="group flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:border-emerald-400/60 hover:bg-white/15 disabled:opacity-60"
-              >
-                <RefreshCw className={`h-4 w-4 text-emerald-200 transition ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-                <span>Обновить сводку</span>
-              </button>
-              <button
-                onClick={logout}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-100 transition hover:border-rose-400 hover:bg-rose-500/20"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Выход</span>
-              </button>
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-end">
+              <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                <BackendStatusPill dense />
+                <DownloadAppButton variant="ghost" compact />
+              </div>
+              <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
+                <button
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="group flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:border-emerald-400/60 hover:bg-white/15 disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-4 w-4 text-emerald-200 transition ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                  <span>Обновить сводку</span>
+                </button>
+                <button
+                  onClick={logout}
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-100 transition hover:border-rose-400 hover:bg-rose-500/20"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Выход</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-8 lg:px-12">
+  <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-12">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,2.1fr)_minmax(0,0.9fr)]">
           <div className="space-y-8">
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

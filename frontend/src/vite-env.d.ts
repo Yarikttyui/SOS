@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_DEFAULT_LAT: string
   readonly VITE_DEFAULT_LNG: string
   readonly VITE_DEFAULT_ZOOM: string
+  readonly VITE_ANDROID_APK_URL?: string
 }
 
 interface ImportMeta {
