@@ -4,6 +4,39 @@ import { useGeolocation } from '../../hooks/useGeolocation'
 import { api } from '../../services/api'
 import type { EmergencyType } from '../../types'
 
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance
+
+interface SpeechRecognitionResultItem {
+  isFinal: boolean
+  0: {
+    transcript: string
+  }
+}
+
+interface SpeechRecognitionResultEvent {
+  results: SpeechRecognitionResultItem[]
+}
+
+interface SpeechRecognitionInstance {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  maxAlternatives?: number
+  start: () => void
+  stop: () => void
+  abort: () => void
+  onresult: ((event: SpeechRecognitionResultEvent) => void) | null
+  onerror: ((event: { error: string; message?: string }) => void) | null
+  onend: (() => void) | null
+}
+
+declare global {
+  interface Window {
+    webkitSpeechRecognition?: SpeechRecognitionConstructor
+    SpeechRecognition?: SpeechRecognitionConstructor
+  }
+}
+
 interface SOSButtonProps {
   autoOpen?: boolean
   hideTrigger?: boolean
@@ -230,6 +263,18 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
   const recordingStartTimeRef = useRef<number | null>(null)
   const recordingTimerRef = useRef<number | undefined>(undefined)
   const recordingMimeTypeRef = useRef<string>('audio/webm')
+  const speechRecognitionCtor = useMemo<SpeechRecognitionConstructor | null>(() => {
+    if (typeof window === 'undefined') return null
+    return window.SpeechRecognition || window.webkitSpeechRecognition || null
+  }, [])
+  const supportsSpeechRecognition = useMemo(() => Boolean(speechRecognitionCtor), [speechRecognitionCtor])
+  const supportsMediaRecorder = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return typeof window.MediaRecorder !== 'undefined'
+  }, [])
+  const speechRecognitionRef = useRef<SpeechRecognitionInstance | null>(null)
+  const speechTranscriptRef = useRef<string>('')
+  const usingSpeechRecognitionRef = useRef(false)
   const {
     latitude,
     longitude,
@@ -243,10 +288,10 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
   } = useGeolocation()
   const hasCoordinates = typeof latitude === 'number' && typeof longitude === 'number'
   const canUseVoiceInput = useMemo(() => {
-    if (typeof window === 'undefined') return false
-    return typeof window.MediaRecorder !== 'undefined' && typeof navigator !== 'undefined' &&
-      Boolean(navigator.mediaDevices?.getUserMedia)
-  }, [])
+    if (typeof navigator === 'undefined') return false
+    const hasMediaRecorder = supportsMediaRecorder && Boolean(navigator.mediaDevices?.getUserMedia)
+    return hasMediaRecorder || supportsSpeechRecognition
+  }, [supportsMediaRecorder, supportsSpeechRecognition])
   const formattedRecordingDuration = useMemo(() => {
     const totalSeconds = Math.max(0, recordingDuration)
     const minutes = Math.floor(totalSeconds / 60)
@@ -254,19 +299,29 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }, [recordingDuration])
   const voiceStatusLabel = useMemo(() => {
-    if (!canUseVoiceInput) return 'Ваш браузер не поддерживает запись голоса'
+    if (!canUseVoiceInput) return 'Голосовой ассистент недоступен в этом браузере'
     if (voiceError) return voiceError
+    if (!supportsMediaRecorder && supportsSpeechRecognition) {
+      if (isProcessingVoice) return 'Распознаём и анализируем диктовку…'
+      if (isRecording) return 'Говорите — браузер превращает речь в текст'
+      if (voiceTranscription) return 'Расшифровка готова. Можно скорректировать текст или перезаписать.'
+      return 'Режим диктовки: используем распознавание речи браузера без загрузки аудио'
+    }
     if (isProcessingVoice) return 'Обрабатываем и анализируем запись…'
     if (isRecording) return 'Идёт запись. Нажмите, чтобы остановить.'
     if (voiceTranscription) return 'Запись готова. Можно перезаписать или использовать текст.'
     return 'Расскажите о ситуации голосом — ассистент определит детали за вас'
-  }, [canUseVoiceInput, isProcessingVoice, isRecording, voiceTranscription, voiceError])
+  }, [canUseVoiceInput, isProcessingVoice, isRecording, voiceTranscription, voiceError, supportsMediaRecorder, supportsSpeechRecognition])
   const voiceActionLabel = useMemo(() => {
     if (isProcessingVoice) return 'Обработка…'
-    if (isRecording) return 'Остановить запись'
-    if (voiceTranscription) return 'Перезаписать'
-    return 'Начать запись'
-  }, [isProcessingVoice, isRecording, voiceTranscription])
+    const stopLabel = supportsMediaRecorder ? 'Остановить запись' : 'Остановить диктовку'
+    const restartLabel = supportsMediaRecorder ? 'Перезаписать' : 'Повторить диктовку'
+    const startLabel = supportsMediaRecorder ? 'Начать запись' : 'Начать диктовку'
+
+    if (isRecording) return stopLabel
+    if (voiceTranscription) return restartLabel
+    return startLabel
+  }, [isProcessingVoice, isRecording, supportsMediaRecorder, voiceTranscription])
   const voiceConfidence = useMemo(() => {
     if (!voiceAnalysis?.confidence && voiceAnalysis?.confidence !== 0) return null
     const value = Math.round(Math.max(0, Math.min(1, voiceAnalysis.confidence ?? 0)) * 100)
@@ -355,6 +410,17 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
       recordingStreamRef.current = null
     }
 
+    if (usingSpeechRecognitionRef.current && speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.stop()
+      } catch (error) {
+        console.warn('Speech recognition stop error', error)
+      }
+      usingSpeechRecognitionRef.current = false
+      speechRecognitionRef.current = null
+    }
+
+    speechTranscriptRef.current = ''
     mediaRecorderRef.current = null
     if (!options?.skipStateReset) {
       setIsRecording(false)
@@ -431,6 +497,176 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
     }
   }, [blobToBase64, description, setDescription, setEmergencyType, setTitle, title])
 
+  const analyzeSpeechTranscription = useCallback(async (text: string) => {
+    const cleanedText = text.trim()
+    if (!cleanedText) {
+      throw new Error('Не удалось распознать речь. Попробуйте ещё раз.')
+    }
+
+    try {
+      const response = await api.post('/api/v1/ai/analyze/text', {
+        text: cleanedText,
+        analysis_type: 'classify',
+        source: 'speech_recognition'
+      })
+
+      if (response.data?.success && response.data.analysis) {
+        const analysis = response.data.analysis as AIAnalysis
+        const normalized: VoiceAnalysisResult = {
+          transcription: cleanedText,
+          emergency_type: analysis.type,
+          priority: analysis.priority,
+          severity: analysis.severity,
+          description: analysis.notes || analysis.risk_assessment || analysis.type_description,
+          location_info: analysis.location_hints?.[0],
+          required_resources: analysis.required_resources,
+          immediate_actions: analysis.immediate_actions,
+          keywords: analysis.keywords,
+          confidence: analysis.confidence,
+          time_sensitive: Boolean(analysis.immediate_actions?.some((action) => /немедлен/i.test(action)))
+        }
+
+        setVoiceAnalysis(normalized)
+
+        if (analysis.type && TYPE_FALLBACKS[analysis.type]) {
+          setEmergencyType(analysis.type as EmergencyType)
+        }
+
+        if (!title.trim()) {
+          const candidate = analysis.type_name || analysis.type || cleanedText.slice(0, 120)
+          setTitle(candidate.slice(0, 120))
+        }
+
+        return normalized
+      }
+
+      return null
+    } catch (error) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const maybeAxios = error as { response?: { data?: { detail?: string; message?: string } } }
+        const serverMessage = maybeAxios.response?.data?.detail || maybeAxios.response?.data?.message
+        if (serverMessage) {
+          throw new Error(serverMessage)
+        }
+      }
+
+      if (error instanceof Error) {
+        throw error
+      }
+
+      throw new Error('Не удалось проанализировать распознанный текст. Попробуйте позже.')
+    }
+  }, [setEmergencyType, setTitle, title])
+
+  const finalizeSpeechRecognition = useCallback(async () => {
+    const finalTranscript = speechTranscriptRef.current.trim()
+
+    try {
+      setIsProcessingVoice(true)
+
+      if (!finalTranscript) {
+        throw new Error('Не удалось распознать речь. Попробуйте ещё раз.')
+      }
+
+      setVoiceTranscription(finalTranscript)
+      if (!description.trim()) {
+        setDescription(finalTranscript)
+      }
+
+      await analyzeSpeechTranscription(finalTranscript)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Ошибка распознавания речи'
+      setVoiceError(message)
+    } finally {
+      setIsProcessingVoice(false)
+      usingSpeechRecognitionRef.current = false
+      speechRecognitionRef.current = null
+      speechTranscriptRef.current = ''
+    }
+  }, [analyzeSpeechTranscription, description, setDescription])
+
+  const startSpeechRecognition = useCallback(() => {
+    if (!speechRecognitionCtor) {
+      setVoiceError('Распознавание речи недоступно в этом браузере')
+      return
+    }
+
+    try {
+      const recognition = new speechRecognitionCtor()
+      recognition.lang = 'ru-RU'
+      recognition.interimResults = true
+      recognition.continuous = true
+      recognition.maxAlternatives = 1
+      speechTranscriptRef.current = ''
+      setVoiceError(null)
+      setVoiceAnalysis(null)
+      setVoiceTranscription(null)
+
+      recognition.onresult = (event) => {
+        try {
+          const transcript = event.results
+            .map((result) => result[0]?.transcript ?? '')
+            .join(' ')
+          speechTranscriptRef.current = transcript
+          setVoiceTranscription(transcript.trim())
+        } catch (err) {
+          console.error('Speech recognition parsing failed', err)
+        }
+      }
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error', event)
+        if (recordingTimerRef.current !== undefined) {
+          clearInterval(recordingTimerRef.current)
+          recordingTimerRef.current = undefined
+        }
+        recordingStartTimeRef.current = null
+        usingSpeechRecognitionRef.current = false
+        speechRecognitionRef.current = null
+        setIsRecording(false)
+        setIsProcessingVoice(false)
+        const errorMessage = event?.error === 'not-allowed'
+          ? 'Доступ к микрофону отклонён. Разрешите использование микрофона.'
+          : 'Не удалось распознать речь. Попробуйте ещё раз.'
+        setVoiceError(errorMessage)
+      }
+
+      recognition.onend = () => {
+        if (recordingTimerRef.current !== undefined) {
+          clearInterval(recordingTimerRef.current)
+          recordingTimerRef.current = undefined
+        }
+        recordingStartTimeRef.current = null
+        setIsRecording(false)
+        void finalizeSpeechRecognition()
+      }
+
+      usingSpeechRecognitionRef.current = true
+      speechRecognitionRef.current = recognition
+      setIsRecording(true)
+      setRecordingDuration(0)
+
+      if (recordingTimerRef.current !== undefined) {
+        clearInterval(recordingTimerRef.current)
+      }
+
+      recordingStartTimeRef.current = Date.now()
+      recordingTimerRef.current = window.setInterval(() => {
+        if (!recordingStartTimeRef.current) return
+        const elapsedSeconds = Math.floor((Date.now() - recordingStartTimeRef.current) / 1000)
+        setRecordingDuration(elapsedSeconds)
+      }, 500)
+
+      recognition.start()
+    } catch (error) {
+      console.error('Speech recognition start failed', error)
+      usingSpeechRecognitionRef.current = false
+      speechRecognitionRef.current = null
+      setIsRecording(false)
+      setVoiceError('Не удалось запустить распознавание речи. Попробуйте другой браузер.')
+    }
+  }, [finalizeSpeechRecognition, speechRecognitionCtor])
+
   const handleStartRecording = useCallback(async () => {
     if (isRecording || isProcessingVoice) {
       return
@@ -443,6 +679,13 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
 
     setVoiceError(null)
     setVoiceAnalysis(null)
+
+    setVoiceTranscription(null)
+
+    if (!supportsMediaRecorder && supportsSpeechRecognition) {
+      startSpeechRecognition()
+      return
+    }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -503,9 +746,34 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
       setVoiceError('Не удалось получить доступ к микрофону. Проверьте разрешения в браузере.')
       resetVoiceWorkflow()
     }
-  }, [canUseVoiceInput, isProcessingVoice, isRecording, resetVoiceWorkflow])
+  }, [canUseVoiceInput, isProcessingVoice, isRecording, resetVoiceWorkflow, startSpeechRecognition, supportsMediaRecorder, supportsSpeechRecognition])
 
   const handleStopRecording = useCallback(async () => {
+    if (usingSpeechRecognitionRef.current) {
+      if (isProcessingVoice) {
+        return
+      }
+
+      setVoiceError(null)
+
+      if (recordingTimerRef.current !== undefined) {
+        clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = undefined
+      }
+      recordingStartTimeRef.current = null
+
+      try {
+        speechRecognitionRef.current?.stop()
+      } catch (error) {
+        console.error('Speech recognition stop failed', error)
+        setVoiceError('Не удалось корректно завершить распознавание речи')
+        usingSpeechRecognitionRef.current = false
+        speechRecognitionRef.current = null
+      }
+
+      return
+    }
+
     if (!mediaRecorderRef.current || isProcessingVoice) {
       return
     }
