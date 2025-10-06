@@ -29,6 +29,7 @@ class GigaChatClient:
         self._base_url = settings.GIGACHAT_BASE_URL.rstrip("/")
         self._auth_url = settings.GIGACHAT_AUTH_URL.rstrip("/") if settings.GIGACHAT_AUTH_URL else ""
         self._scope = settings.GIGACHAT_SCOPE
+        self._model = settings.GIGACHAT_MODEL
         self._verify = settings.GIGACHAT_VERIFY_SSL
         self._token: Optional[str] = None
         self._token_expiry: Optional[datetime] = None
@@ -90,7 +91,6 @@ class GigaChatClient:
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Accept": "application/json",
                 "RqUID": str(uuid.uuid4()),
-                "Date": formatdate(usegmt=True),
             }
 
             if self._client_id:
@@ -125,7 +125,7 @@ class GigaChatClient:
 
         completion_url = f"{self._base_url}/chat/completions"
         payload = {
-            "model": "GigaChat",
+            "model": self._model or "GigaChat-2",
             "messages": messages,
             "temperature": temperature,
             "max_tokens": 1024,
@@ -140,7 +140,6 @@ class GigaChatClient:
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                     "RqUID": str(uuid.uuid4()),
-                    "Date": formatdate(usegmt=True),
                 }
                 if self._client_id:
                     headers.setdefault("X-Client-ID", self._client_id)
