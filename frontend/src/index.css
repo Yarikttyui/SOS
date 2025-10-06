@@ -136,8 +136,9 @@
 
   /* Modern Input Styles */
   .input-modern {
-    @apply w-full px-4 py-3 bg-white/90 border border-gray-200 rounded-2xl shadow-inner focus:border-rose-400 focus:ring-4 focus:ring-rose-100
-           transition-all duration-200 outline-none placeholder:text-gray-400 backdrop-blur;
+    @apply w-full px-4 py-3 bg-white/90 border border-gray-200 rounded-2xl shadow-inner text-slate-900 placeholder:text-slate-400/80
+           focus:border-rose-400 focus:ring-4 focus:ring-rose-100 transition-all duration-200 outline-none backdrop-blur
+           dark:bg-slate-900/70 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-300;
   }
 
   /* Card Styles */
@@ -166,6 +167,22 @@
 
   .gradient-border > .gradient-border-inner {
     @apply bg-white/95 rounded-[1.65rem] h-full w-full;
+  }
+
+  .progress-track {
+    @apply h-2 w-full appearance-none overflow-hidden rounded-full bg-white/10;
+  }
+
+  .progress-track::-webkit-progress-bar {
+    @apply bg-transparent;
+  }
+
+  .progress-track::-webkit-progress-value {
+    @apply h-2 rounded-full bg-gradient-to-r from-indigo-400 via-sky-400 to-cyan-300 transition-all duration-300 ease-out;
+  }
+
+  .progress-track::-moz-progress-bar {
+    @apply h-2 rounded-full bg-gradient-to-r from-indigo-400 via-sky-400 to-cyan-300 transition-all duration-300 ease-out;
   }
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { api } from '../../services/api'
-import SOSButton from '../../components/sos/SOSButton'
 import {
   Activity,
   AlertTriangle,
@@ -79,6 +79,7 @@ const formatTime = (date: string) => {
 
 export default function CitizenDashboard() {
   const { user, logout } = useAuthStore()
+  const navigate = useNavigate()
   const [myAlerts, setMyAlerts] = useState<SOSAlert[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -189,8 +190,18 @@ export default function CitizenDashboard() {
                 </div>
               </div>
 
-              <div className="flex justify-center">
-                <SOSButton />
+              <div className="flex flex-col items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => navigate('/sos')}
+                  className="relative inline-flex items-center justify-center gap-3 overflow-hidden rounded-full border border-rose-400/40 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 px-8 py-4 text-lg font-semibold shadow-[0_24px_60px_rgba(244,114,182,0.45)] transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                >
+                  <span className="text-2xl">🚨</span>
+                  <span>Открыть окно SOS</span>
+                </button>
+                <p className="text-xs text-white/60">
+                  Форма откроется в отдельном защищённом окне. После отправки вы вернётесь на панель.
+                </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 text-xs sm:text-sm text-white/70">

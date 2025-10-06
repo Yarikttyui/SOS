@@ -25,6 +25,64 @@ import {
 } from 'lucide-react'
 import type { SOSAlert, DashboardStats } from '../../types'
 
+const STATUS_STYLES: Record<string, string> = {
+  pending: 'bg-amber-500/15 border border-amber-400/40 text-amber-100',
+  assigned: 'bg-sky-500/15 border border-sky-400/40 text-sky-100',
+  in_progress: 'bg-violet-500/15 border border-violet-400/40 text-violet-100',
+  completed: 'bg-emerald-500/15 border border-emerald-400/40 text-emerald-100',
+  cancelled: 'bg-slate-500/15 border border-slate-400/40 text-slate-200',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Ожидание',
+  assigned: 'Назначено',
+  in_progress: 'В работе',
+  completed: 'Завершено',
+  cancelled: 'Отменено',
+}
+
+const STATUS_EMOJIS: Record<string, string> = {
+  pending: '⏳',
+  assigned: '🗂️',
+  in_progress: '🚀',
+  completed: '✅',
+  cancelled: '✖️',
+}
+
+const PRIORITY_STYLES: Record<number, { badge: string; ring: string; label: string }> = {
+  1: {
+    badge: 'bg-rose-500/20 border border-rose-400/40 text-rose-100',
+    ring: 'from-rose-500 via-red-500 to-orange-400',
+    label: 'P1 · Критический',
+  },
+  2: {
+    badge: 'bg-orange-500/20 border border-orange-400/40 text-orange-100',
+    ring: 'from-orange-500 via-amber-500 to-yellow-400',
+    label: 'P2 · Высокий',
+  },
+  3: {
+    badge: 'bg-yellow-500/20 border border-yellow-400/40 text-yellow-100',
+    ring: 'from-yellow-500 via-lime-500 to-emerald-400',
+    label: 'P3 · Средний',
+  },
+  4: {
+    badge: 'bg-emerald-500/20 border border-emerald-400/40 text-emerald-100',
+    ring: 'from-emerald-500 via-teal-500 to-sky-400',
+    label: 'P4 · Низкий',
+  },
+}
+
+const EMERGENCY_LABELS: Record<string, string> = {
+  fire: 'Пожар',
+  medical: 'Медицина',
+  police: 'Полиция',
+  water_rescue: 'Водная спасательная',
+  mountain_rescue: 'Горная спасательная',
+  search_rescue: 'Поисково-спасательная',
+  ecological: 'Экологическая',
+  general: 'Общий вызов',
+}
+
 export default function OperatorDashboard() {
   const { user, logout } = useAuthStore()
   const [alerts, setAlerts] = useState<SOSAlert[]>([])
@@ -80,41 +138,49 @@ export default function OperatorDashboard() {
   }
 
   const getTypeIconComponent = (type: string) => {
-    const iconProps = { className: "w-5 h-5" }
+    const baseClass = 'h-5 w-5'
     switch (type) {
-      case 'fire': return <Flame {...iconProps} className="w-5 h-5 text-red-600" />
-      case 'medical': return <Heart {...iconProps} className="w-5 h-5 text-blue-600" />
-      case 'police': return <Shield {...iconProps} className="w-5 h-5 text-indigo-600" />
-      case 'water_rescue': return <Waves {...iconProps} className="w-5 h-5 text-cyan-600" />
-      case 'mountain_rescue': return <Mountain {...iconProps} className="w-5 h-5 text-yellow-700" />
-      case 'search_rescue': return <Search {...iconProps} className="w-5 h-5 text-orange-600" />
-      case 'ecological': return <Leaf {...iconProps} className="w-5 h-5 text-green-600" />
-      default: return <AlertTriangle {...iconProps} className="w-5 h-5 text-gray-600" />
+      case 'fire':
+        return <Flame className={`${baseClass} text-rose-300`} />
+      case 'medical':
+        return <Heart className={`${baseClass} text-sky-300`} />
+      case 'police':
+        return <Shield className={`${baseClass} text-indigo-300`} />
+      case 'water_rescue':
+        return <Waves className={`${baseClass} text-cyan-300`} />
+      case 'mountain_rescue':
+        return <Mountain className={`${baseClass} text-amber-300`} />
+      case 'search_rescue':
+        return <Search className={`${baseClass} text-orange-300`} />
+      case 'ecological':
+        return <Leaf className={`${baseClass} text-emerald-300`} />
+      default:
+        return <AlertTriangle className={`${baseClass} text-slate-300`} />
     }
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">⏳ Ожидание</span>
-      case 'assigned':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">📋 Назначено</span>
-      case 'in_progress':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300">🚀 В работе</span>
-      case 'completed':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">✅ Завершено</span>
-      case 'cancelled':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-300">❌ Отменено</span>
-      default:
-        return <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-800 border border-gray-300">{status}</span>
-    }
+    const key = status.toLowerCase()
+    const badgeClass = STATUS_STYLES[key] ?? 'bg-slate-500/15 border border-slate-400/40 text-slate-100'
+    const label = STATUS_LABELS[key] ?? status
+    const emoji = STATUS_EMOJIS[key] ?? 'ℹ️'
+
+    return (
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase ${badgeClass}`}>
+        <span>{emoji}</span>
+        <span>{label}</span>
+      </span>
+    )
   }
 
-  const getPriorityColor = (priority: number) => {
-    if (priority === 1) return 'border-l-4 border-red-600 bg-red-50'
-    if (priority === 2) return 'border-l-4 border-orange-600 bg-orange-50'
-    if (priority === 3) return 'border-l-4 border-yellow-600 bg-yellow-50'
-    return 'border-l-4 border-gray-600 bg-gray-50'
+  const getPriorityVisuals = (priority: number) => {
+    return (
+      PRIORITY_STYLES[priority] ?? {
+        badge: 'bg-slate-500/20 border border-slate-400/40 text-slate-200',
+        ring: 'from-slate-600 via-slate-500 to-slate-400',
+        label: `P${priority} · Приоритет`,
+      }
+    )
   }
 
   const formatTime = (date: string) => {
@@ -128,254 +194,452 @@ export default function OperatorDashboard() {
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
   }
 
+  const statusEntries = stats ? Object.entries(stats.by_status || {}) : []
+  const typeEntries = stats ? Object.entries(stats.by_type || {}) : []
+  const topTypes = typeEntries
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+  const totalTypesCount = typeEntries.reduce((acc, [, value]) => acc + value, 0)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-      {/* Modern Header */}
-      <header className="bg-white/80 backdrop-blur-xl shadow-lg sticky top-0 z-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                📞 Панель оператора
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600 font-medium">
-                {user?.full_name || user?.email}
-              </p>
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.22),transparent_60%)]" />
+        <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,_rgba(6,182,212,0.2),transparent_65%)]" />
+      </div>
+
+      <header className="border-b border-white/10 bg-slate-900/60 backdrop-blur-xl">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-500 p-3 shadow-xl shadow-indigo-500/40">
+                <Phone className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
+                  Unified Command Center
+                </p>
+                <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">
+                  Панель оператора
+                </h1>
+                <p className="mt-3 flex items-center gap-2 text-sm text-slate-300">
+                  <User className="h-4 w-4 text-slate-400" />
+                  {user?.full_name || user?.email}
+                </p>
+              </div>
             </div>
-            <div className="flex gap-2">
+
+            <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={fetchData}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl font-semibold transition-all"
+                className="group flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/20 disabled:opacity-60"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Обновить</span>
+                <RefreshCw className={`h-4 w-4 text-sky-200 transition ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+                <span>Обновить данные</span>
               </button>
               <button
                 onClick={logout}
-                className="flex items-center gap-2 px-4 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-semibold transition-all"
+                className="flex items-center justify-center gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-100 transition hover:border-rose-400 hover:bg-rose-500/20"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Выход</span>
+                <LogOut className="h-4 w-4" />
+                <span>Выйти из системы</span>
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-            <div className="card-modern bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-6 hover:shadow-2xl transition-all transform hover:scale-105">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <BarChart3 className="w-8 h-8" />
-                </div>
-                <TrendingUp className="w-6 h-6 opacity-50" />
-              </div>
-              <p className="text-sm opacity-90 mb-1">Всего тревог</p>
-              <p className="text-4xl font-extrabold">{stats.total_alerts || 0}</p>
-            </div>
-            
-            <div className="card-modern bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 hover:shadow-2xl transition-all transform hover:scale-105">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <Activity className="w-8 h-8" />
-                </div>
-                <TrendingUp className="w-6 h-6 opacity-50" />
-              </div>
-              <p className="text-sm opacity-90 mb-1">Активные</p>
-              <p className="text-4xl font-extrabold">{stats.active_alerts || 0}</p>
-            </div>
-            
-            <div className="card-modern bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 hover:shadow-2xl transition-all transform hover:scale-105">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <Clock className="w-8 h-8" />
-                </div>
-                <TrendingUp className="w-6 h-6 opacity-50" />
-              </div>
-              <p className="text-sm opacity-90 mb-1">Сегодня</p>
-              <p className="text-4xl font-extrabold">{stats.today_alerts || 0}</p>
-            </div>
-            
-            <div className="card-modern bg-gradient-to-br from-green-500 to-green-600 text-white p-6 hover:shadow-2xl transition-all transform hover:scale-105">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <CheckCircle className="w-8 h-8" />
-                </div>
-                <TrendingUp className="w-6 h-6 opacity-50" />
-              </div>
-              <p className="text-sm opacity-90 mb-1">Завершено</p>
-              <p className="text-4xl font-extrabold">{stats.by_status?.completed || 0}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="card-modern p-5 sm:p-6 mb-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2 text-gray-700">
-              <Filter className="w-5 h-5" />
-              <span className="font-semibold">Фильтры:</span>
-            </div>
-            <div className="flex-1 flex flex-col sm:flex-row gap-3">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="input-modern flex-1"
-                aria-label="Фильтр по статусу тревоги"
-              >
-                <option value="all">Все статусы</option>
-                <option value="pending">Ожидание</option>
-                <option value="assigned">Назначено</option>
-                <option value="in_progress">В работе</option>
-                <option value="completed">Завершено</option>
-                <option value="cancelled">Отменено</option>
-              </select>
-              
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="input-modern flex-1"
-                aria-label="Фильтр по типу тревоги"
-              >
-                <option value="all">Все типы</option>
-                <option value="fire">🔥 Пожар</option>
-                <option value="medical">🚑 Медицина</option>
-                <option value="police">👮 Полиция</option>
-                <option value="water_rescue">🌊 На воде</option>
-                <option value="mountain_rescue">⛰️ Горы</option>
-                <option value="search_rescue">🔍 Поиск</option>
-                <option value="ecological">☢️ Экология</option>
-                <option value="general">⚠️ Общая</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Alerts List */}
-        <div className="card-modern">
-          <div className="p-5 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-cyan-50">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                🚨 Тревожные сигналы
-              </h2>
-              <span className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-lg">
-                {alerts.length}
-              </span>
-            </div>
-          </div>
-          
-          <div className="divide-y divide-gray-100">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <RefreshCw className="w-16 h-16 text-indigo-600 animate-spin mb-4" />
-                <p className="text-gray-600 font-medium">Загрузка данных...</p>
-              </div>
-            ) : alerts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <AlertCircle className="w-20 h-20 text-gray-300 mb-4" />
-                <h3 className="text-xl font-bold text-gray-500 mb-2">Нет тревожных сигналов</h3>
-                <p className="text-gray-400">Все спокойно! 🎉</p>
-              </div>
-            ) : (
-              alerts.map((alert) => (
-                <div 
-                  key={alert.id} 
-                  className={`p-5 sm:p-6 hover:bg-gray-50 transition-all ${getPriorityColor(alert.priority)}`}
-                >
-                  <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="flex-1">
-                      {/* Header */}
-                      <div className="flex flex-wrap items-center gap-3 mb-3">
-                        <div className="p-2 bg-white rounded-lg shadow-sm">
-                          {getTypeIconComponent(alert.type)}
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900">
-                          {alert.title || `Тревога: ${alert.type}`}
-                        </h3>
-                        {getStatusBadge(alert.status)}
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white">
-                          P{alert.priority}
-                        </span>
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-8 lg:px-12">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
+          <div className="space-y-8">
+            {stats && (
+              <>
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <article className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 p-6 shadow-xl transition duration-200 hover:-translate-y-1 hover:shadow-2xl">
+                    <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/20 blur-3xl" />
+                    <div className="flex items-center justify-between">
+                      <div className="rounded-2xl bg-white/15 p-3">
+                        <BarChart3 className="h-7 w-7 text-white" />
                       </div>
-                      
-                      {/* Description */}
-                      <p className="text-gray-700 mb-4 leading-relaxed">{alert.description}</p>
-                      
-                      {/* Info Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="font-mono">{Number(alert.latitude).toFixed(4)}, {Number(alert.longitude).toFixed(4)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                          <span>{formatTime(alert.created_at)}</span>
-                        </div>
-                        {(alert.assigned_to_name || alert.team_name) && (
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-indigo-600" />
-                            <span className="font-semibold text-indigo-600">
-                              {alert.team_name || alert.assigned_to_name}
-                            </span>
+                      <TrendingUp className="h-5 w-5 text-white/60" />
+                    </div>
+                    <p className="mt-6 text-sm font-medium uppercase tracking-[0.3em] text-white/70">
+                      Всего тревог
+                    </p>
+                    <p className="mt-2 text-4xl font-semibold text-white">{stats.total_alerts ?? 0}</p>
+                  </article>
+
+                  <article className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-6 shadow-xl transition duration-200 hover:-translate-y-1 hover:shadow-2xl">
+                    <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20 blur-3xl" />
+                    <div className="flex items-center justify-between">
+                      <div className="rounded-2xl bg-white/15 p-3">
+                        <Activity className="h-7 w-7 text-white" />
+                      </div>
+                      <AlertTriangle className="h-5 w-5 text-white/70" />
+                    </div>
+                    <p className="mt-6 text-sm font-medium uppercase tracking-[0.3em] text-white/80">
+                      Активные сейчас
+                    </p>
+                    <p className="mt-2 text-4xl font-semibold text-white">{stats.active_alerts ?? 0}</p>
+                  </article>
+
+                  <article className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-sky-500 via-cyan-500 to-emerald-500 p-6 shadow-xl transition duration-200 hover:-translate-y-1 hover:shadow-2xl">
+                    <div className="absolute -left-10 top-0 h-28 w-28 rounded-full bg-white/20 blur-3xl" />
+                    <div className="flex items-center justify-between">
+                      <div className="rounded-2xl bg-white/15 p-3">
+                        <Clock className="h-7 w-7 text-white" />
+                      </div>
+                      <TrendingUp className="h-5 w-5 text-white/70" />
+                    </div>
+                    <p className="mt-6 text-sm font-medium uppercase tracking-[0.3em] text-white/80">
+                      За последние 24ч
+                    </p>
+                    <p className="mt-2 text-4xl font-semibold text-white">{stats.today_alerts ?? 0}</p>
+                  </article>
+
+                  <article className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-500 via-teal-500 to-sky-500 p-6 shadow-xl transition duration-200 hover:-translate-y-1 hover:shadow-2xl">
+                    <div className="absolute bottom-0 right-0 h-28 w-28 rounded-full bg-white/20 blur-3xl" />
+                    <div className="flex items-center justify-between">
+                      <div className="rounded-2xl bg-white/15 p-3">
+                        <CheckCircle className="h-7 w-7 text-white" />
+                      </div>
+                      <TrendingUp className="h-5 w-5 text-white/70" />
+                    </div>
+                    <p className="mt-6 text-sm font-medium uppercase tracking-[0.3em] text-white/80">
+                      Закрытые кейсы
+                    </p>
+                    <p className="mt-2 text-4xl font-semibold text-white">{stats.by_status?.completed ?? 0}</p>
+                  </article>
+                </section>
+
+                <section className="grid gap-4 lg:grid-cols-2">
+                  <article className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-lg font-semibold text-white">Статус тревог</h2>
+                        <p className="text-sm text-slate-400">Мониторинг распределения по этапам реагирования</p>
+                      </div>
+                      <BarChart3 className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <div className="mt-6 space-y-4">
+                      {statusEntries.map(([statusKey, value]) => {
+                        const normalized = statusKey as string
+                        const badgeClass = STATUS_STYLES[normalized] ?? 'bg-slate-500/15 border border-slate-400/40 text-slate-200'
+                        const label = STATUS_LABELS[normalized] ?? normalized
+                        const percentage = stats.total_alerts ? Math.round((value / Math.max(stats.total_alerts, 1)) * 100) : 0
+
+                        return (
+                          <div key={statusKey} className="space-y-2">
+                            <div className="flex items-center justify-between text-sm text-slate-300">
+                              <span className="flex items-center gap-2">
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase ${badgeClass}`}>
+                                  {STATUS_EMOJIS[normalized] ?? '•'}
+                                  {label}
+                                </span>
+                              </span>
+                              <span className="font-semibold text-white">{value}</span>
+                            </div>
+                            <progress
+                              value={value}
+                              max={Math.max(stats.total_alerts ?? 1, 1)}
+                              aria-label={`Доля статуса ${label}`}
+                              className="progress-track"
+                              data-percentage={percentage}
+                            />
                           </div>
-                        )}
+                        )
+                      })}
+                    </div>
+                  </article>
+
+                  <article className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-lg font-semibold text-white">Типы инцидентов</h2>
+                        <p className="text-sm text-slate-400">Топ категорий за выбранный период</p>
                       </div>
+                      <Activity className="h-5 w-5 text-slate-400" />
                     </div>
-                    
-                    {/* Actions */}
-                    <div className="flex lg:flex-col gap-2 min-w-[160px]">
-                      {alert.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleAssignAlert(alert.id)}
-                            className="flex-1 lg:flex-none btn-primary flex items-center justify-center gap-2 py-3"
-                          >
-                            <Phone className="w-4 h-4" />
-                            Принять
-                          </button>
-                          <button
-                            onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
-                            className="flex-1 lg:flex-none px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-semibold transition-all"
-                          >
-                            Отменить
-                          </button>
-                        </>
-                      )}
-                      {alert.status === 'in_progress' && (
-                        <>
-                          <button
-                            onClick={() => handleUpdateStatus(alert.id, 'completed')}
-                            className="flex-1 lg:flex-none btn-primary bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2 py-3"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Завершить
-                          </button>
-                          <button
-                            onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
-                            className="flex-1 lg:flex-none px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all"
-                          >
-                            Отменить
-                          </button>
-                        </>
-                      )}
-                      {alert.status === 'assigned' && (
-                        <button
-                          onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
-                          className="flex-1 lg:flex-none px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all"
-                        >
-                          Отменить вызов
-                        </button>
+                    <div className="mt-6 space-y-4">
+                      {topTypes.length === 0 ? (
+                        <p className="rounded-2xl border border-dashed border-white/20 bg-slate-900/40 p-4 text-sm text-slate-400">
+                          Данные по типам тревог появятся после получения первых сигналов.
+                        </p>
+                      ) : (
+                        topTypes.map(([typeKey, value]) => {
+                          const label = EMERGENCY_LABELS[typeKey] ?? typeKey
+                          const share = totalTypesCount ? Math.round((value / totalTypesCount) * 100) : 0
+
+                          return (
+                            <div key={typeKey} className="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                              <div className="flex items-center gap-3 text-sm text-slate-200">
+                                <span className="rounded-2xl bg-white/10 p-2">
+                                  {getTypeIconComponent(typeKey)}
+                                </span>
+                                <div>
+                                  <p className="font-semibold text-white">{label}</p>
+                                  <p className="text-xs text-slate-400">{share}% от обращений</p>
+                                </div>
+                              </div>
+                              <span className="text-base font-semibold text-white">{value}</span>
+                            </div>
+                          )
+                        })
                       )}
                     </div>
-                  </div>
-                </div>
-              ))
+                  </article>
+                </section>
+              </>
             )}
+
+            <section className="space-y-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">
+                    Live Feed
+                  </p>
+                  <h2 className="text-2xl font-semibold text-white">Текущие тревожные сигналы</h2>
+                  <p className="text-sm text-slate-400">Приоритетно обрабатывайте критические вызовы и держите команду в курсе</p>
+                </div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-white">
+                  <AlertTriangle className="h-4 w-4" />
+                  {alerts.length} активных инцидентов
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-slate-900/60 py-20">
+                    <RefreshCw className="mb-4 h-12 w-12 text-sky-300 animate-spin" />
+                    <p className="text-sm text-slate-400">Обновляем сводку инцидентов...</p>
+                  </div>
+                ) : alerts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/20 bg-slate-900/40 py-20 text-center">
+                    <CheckCircle className="mb-4 h-14 w-14 text-emerald-300" />
+                    <h3 className="text-xl font-semibold text-white">На линии спокойно</h3>
+                    <p className="mt-2 max-w-sm text-sm text-slate-400">
+                      Новые запросы появятся здесь мгновенно. Держите связь с оперативными службами.
+                    </p>
+                  </div>
+                ) : (
+                  alerts.map((alert) => {
+                    const visuals = getPriorityVisuals(alert.priority)
+                    const typeLabel = EMERGENCY_LABELS[alert.type] ?? alert.type
+                    const title = alert.title || `${typeLabel} · SOS`
+                    const description = alert.description || 'Описание отсутствует'
+
+                    return (
+                      <article
+                        key={alert.id}
+                        className="group relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60 p-6 shadow-2xl transition duration-200 hover:-translate-y-1 hover:border-white/30 hover:bg-slate-900/80"
+                      >
+                        <div className={`absolute inset-x-6 top-0 h-px bg-gradient-to-r ${visuals.ring}`} />
+                        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex-1 space-y-5">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
+                                  {getTypeIconComponent(alert.type)}
+                                </span>
+                                <div>
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-500">
+                                    {typeLabel}
+                                  </p>
+                                  <h3 className="text-xl font-semibold text-white">
+                                    {title}
+                                  </h3>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+                                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${visuals.badge}`}>
+                                  <Flame className="h-3.5 w-3.5" />
+                                  {visuals.label}
+                                </span>
+                                {getStatusBadge(alert.status)}
+                              </div>
+                            </div>
+
+                            <p className="text-sm leading-relaxed text-slate-300">
+                              {description}
+                            </p>
+
+                            <div className="grid gap-3 text-sm text-slate-300 md:grid-cols-3">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-sky-300" />
+                                <span className="font-mono text-slate-200">
+                                  {Number(alert.latitude).toFixed(4)}, {Number(alert.longitude).toFixed(4)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-indigo-300" />
+                                <span>{formatTime(alert.created_at)}</span>
+                              </div>
+                              {(alert.assigned_to_name || alert.team_name) && (
+                                <div className="flex items-center gap-2">
+                                  <Shield className="h-4 w-4 text-emerald-300" />
+                                  <span className="font-medium text-white">
+                                    {alert.team_name || alert.assigned_to_name}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2 lg:min-w-[220px]">
+                            {alert.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleAssignAlert(alert.id)}
+                                  className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-indigo-500/40"
+                                >
+                                  <Phone className="h-4 w-4" />
+                                  Взять в работу
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
+                                  className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-rose-400/50 hover:text-rose-200"
+                                >
+                                  Отменить запрос
+                                </button>
+                              </>
+                            )}
+
+                            {alert.status === 'assigned' && (
+                              <button
+                                onClick={() => handleUpdateStatus(alert.id, 'in_progress')}
+                                className="flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+                              >
+                                <Activity className="h-4 w-4" />
+                                Подтвердить выезд
+                              </button>
+                            )}
+
+                            {alert.status === 'in_progress' && (
+                              <>
+                                <button
+                                  onClick={() => handleUpdateStatus(alert.id, 'completed')}
+                                  className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-500/80 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-500"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  Завершено
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateStatus(alert.id, 'cancelled')}
+                                  className="flex items-center justify-center gap-2 rounded-2xl border border-rose-400/40 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/10"
+                                >
+                                  Отменить выезд
+                                </button>
+                              </>
+                            )}
+
+                            {alert.status === 'completed' && (
+                              <span className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/50 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-100">
+                                <CheckCircle className="h-4 w-4" />
+                                Завершено
+                              </span>
+                            )}
+
+                            {alert.status === 'cancelled' && (
+                              <span className="flex items-center justify-center gap-2 rounded-2xl border border-slate-500/50 bg-slate-800/80 px-4 py-3 text-sm font-semibold text-slate-300">
+                                <AlertCircle className="h-4 w-4" />
+                                Запрос отменён
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    )
+                  })
+                )}
+              </div>
+            </section>
           </div>
+
+          <aside className="space-y-6">
+            <section className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">Контроль</p>
+                  <h2 className="text-xl font-semibold text-white">Фильтр оперативных задач</h2>
+                </div>
+                <Filter className="h-5 w-5 text-slate-400" />
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="statusFilter" className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                    Статус обращения
+                  </label>
+                  <select
+                    id="statusFilter"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-sky-400/60 focus:bg-white/10"
+                  >
+                    <option className="bg-slate-900 text-slate-200" value="all">Все статусы</option>
+                    <option className="bg-slate-900 text-slate-200" value="pending">Ожидание</option>
+                    <option className="bg-slate-900 text-slate-200" value="assigned">Назначено</option>
+                    <option className="bg-slate-900 text-slate-200" value="in_progress">В работе</option>
+                    <option className="bg-slate-900 text-slate-200" value="completed">Завершено</option>
+                    <option className="bg-slate-900 text-slate-200" value="cancelled">Отменено</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="typeFilter" className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                    Тип тревоги
+                  </label>
+                  <select
+                    id="typeFilter"
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-sky-400/60 focus:bg-white/10"
+                  >
+                    <option className="bg-slate-900 text-slate-200" value="all">Все типы</option>
+                    <option className="bg-slate-900 text-slate-200" value="fire">Пожар</option>
+                    <option className="bg-slate-900 text-slate-200" value="medical">Медицина</option>
+                    <option className="bg-slate-900 text-slate-200" value="police">Полиция</option>
+                    <option className="bg-slate-900 text-slate-200" value="water_rescue">Водная спасательная</option>
+                    <option className="bg-slate-900 text-slate-200" value="mountain_rescue">Горная спасательная</option>
+                    <option className="bg-slate-900 text-slate-200" value="search_rescue">Поисково-спасательная</option>
+                    <option className="bg-slate-900 text-slate-200" value="ecological">Экологическая</option>
+                    <option className="bg-slate-900 text-slate-200" value="general">Общий вызов</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={fetchData}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-sky-400/60 hover:bg-white/10"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Применить фильтры
+                </button>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-600/25 via-slate-900/80 to-slate-900/40 p-6 shadow-xl">
+              <h2 className="text-lg font-semibold text-white">Протокол реакции</h2>
+              <p className="mt-2 text-sm text-slate-300">
+                Напоминания по последовательности действий для критических ситуаций.
+              </p>
+              <ul className="mt-6 space-y-3 text-sm text-slate-200">
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 h-2.5 w-2.5 rounded-full bg-sky-400" />
+                  <span>Проверьте координаты и подтверждённость вызова, сверяйте с системами мониторинга.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 h-2.5 w-2.5 rounded-full bg-indigo-400" />
+                  <span>Назначайте ближайшие и свободные команды, учитывая профиль и приоритет.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                  <span>Отмечайте ключевые статусы: выезд, прибытие, завершение. Следите за обратной связью.</span>
+                </li>
+              </ul>
+            </section>
+          </aside>
         </div>
       </main>
     </div>

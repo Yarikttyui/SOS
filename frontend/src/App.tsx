@@ -9,6 +9,7 @@ import RescuerDashboard from './features/dashboard/RescuerDashboard'
 import OperatorDashboard from './features/dashboard/OperatorDashboard'
 import { CoordinatorDashboard } from './features/dashboard/CoordinatorDashboard'
 import AdminDashboard from './features/dashboard/AdminDashboard'
+import SOSStandalonePage from './features/sos/SOSStandalonePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, fetchCurrentUser } = useAuthStore()
@@ -58,6 +59,15 @@ function App() {
           element={
             <ProtectedRoute>
               <RoleBasedDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/sos"
+          element={
+            <ProtectedRoute>
+              <SOSStandalonePage />
             </ProtectedRoute>
           }
         />

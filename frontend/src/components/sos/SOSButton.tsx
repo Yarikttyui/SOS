@@ -4,6 +4,12 @@ import { useGeolocation } from '../../hooks/useGeolocation'
 import { api } from '../../services/api'
 import type { EmergencyType } from '../../types'
 
+interface SOSButtonProps {
+  autoOpen?: boolean
+  hideTrigger?: boolean
+  onClose?: () => void
+}
+
 interface AIReferenceData {
   types: { code: string; name: string; description: string }[]
   priorities: { level: number; name: string; description: string }[]
@@ -177,9 +183,9 @@ const RISK_LABELS: Record<string, string> = {
   requires_verification: 'Требуется уточнение данных',
 }
 
-export default function SOSButton() {
+export default function SOSButton({ autoOpen = false, hideTrigger = false, onClose }: SOSButtonProps) {
   const [isEmergency, setIsEmergency] = useState(false)
-  const [showModal, setShowModal] = useState(false)
+  const [showModal, setShowModal] = useState(autoOpen)
   const [showAIModal, setShowAIModal] = useState(false)
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null)
   const [emergencyType, setEmergencyType] = useState<EmergencyType>('general')
@@ -204,6 +210,21 @@ export default function SOSButton() {
     resetLocation,
   } = useGeolocation()
   const hasCoordinates = typeof latitude === 'number' && typeof longitude === 'number'
+
+  const handleClose = () => {
+    setShowModal(false)
+    setSuccessMessage(null)
+    setError(null)
+    onClose?.()
+  }
+
+  useEffect(() => {
+    if (autoOpen) {
+      setShowModal(true)
+      setError(null)
+      getLocation()
+    }
+  }, [autoOpen, getLocation])
 
   const resolveProviderLabel = (analysis: AIAnalysis | null): string => {
     if (!analysis) return 'AI-помощник'
@@ -372,8 +393,7 @@ export default function SOSButton() {
       }, 5000)
 
       setTimeout(() => {
-        setShowModal(false)
-        setSuccessMessage(null)
+        handleClose()
       }, 4000)
     } catch (err: any) {
       console.error('Failed to create SOS alert:', err)
@@ -445,42 +465,44 @@ export default function SOSButton() {
   return (
     <>
       {/* SOS Button */}
-      <div className="relative inline-block">
-        {/* Pulse rings animation - behind button */}
-        {!isEmergency && (
-          <>
-            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10"></div>
-            <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10 [animation-delay:1s]"></div>
-          </>
-        )}
-        
-        <button
-          onClick={handleSOSClick}
-          disabled={isEmergency}
-          className={`
-            relative z-10 w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full text-white font-bold
-            transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-4
-            disabled:cursor-not-allowed
-            ${isEmergency 
-              ? 'bg-gradient-success shadow-lg ring-green-300 scale-95' 
-              : 'bg-gradient-emergency sos-button hover:scale-105 active:scale-95 ring-red-300'
-            }
-          `}
-        >
-          {isEmergency ? (
-            <div className="flex flex-col items-center justify-center animate-fade-in">
-              <CheckCircle className="w-16 h-16 sm:w-20 sm:h-20 mb-3" />
-              <span className="text-xl sm:text-2xl font-bold">Помощь вызвана</span>
-              <span className="text-sm sm:text-base font-normal mt-2 opacity-90">Ожидайте спасателей</span>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center">
-              <span className="text-5xl sm:text-6xl md:text-7xl font-extrabold mb-2 text-red-600 drop-shadow-[0_0_12px_rgba(239,68,68,0.35)]">SOS</span>
-              <span className="text-sm sm:text-base font-semibold text-red-500">Нажмите для вызова</span>
-            </div>
+      {!hideTrigger && (
+        <div className="relative inline-block">
+          {/* Pulse rings animation - behind button */}
+          {!isEmergency && (
+            <>
+              <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10"></div>
+              <div className="absolute inset-0 rounded-full bg-red-500 animate-pulse-ring opacity-75 pointer-events-none -z-10 [animation-delay:1s]"></div>
+            </>
           )}
-        </button>
-      </div>
+          
+          <button
+            onClick={handleSOSClick}
+            disabled={isEmergency}
+            className={`
+              relative z-10 w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full text-white font-bold
+              transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-4
+              disabled:cursor-not-allowed
+              ${isEmergency 
+                ? 'bg-gradient-success shadow-lg ring-green-300 scale-95' 
+                : 'bg-gradient-emergency sos-button hover:scale-105 active:scale-95 ring-red-300'
+              }
+            `}
+          >
+            {isEmergency ? (
+              <div className="flex flex-col items-center justify-center animate-fade-in">
+                <CheckCircle className="w-16 h-16 sm:w-20 sm:h-20 mb-3" />
+                <span className="text-xl sm:text-2xl font-bold">Помощь вызвана</span>
+                <span className="text-sm sm:text-base font-normal mt-2 opacity-90">Ожидайте спасателей</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center">
+                <span className="text-5xl sm:text-6xl md:text-7xl font-extrabold mb-2 text-red-600 drop-shadow-[0_0_12px_rgba(239,68,68,0.35)]">SOS</span>
+                <span className="text-sm sm:text-base font-semibold text-red-500">Нажмите для вызова</span>
+              </div>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Emergency Modal */}
       {showModal && (
@@ -513,7 +535,7 @@ export default function SOSButton() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => setShowModal(false)}
+                      onClick={handleClose}
                       aria-label="Закрыть окно"
                       className="btn-glass text-xs font-semibold uppercase tracking-wide"
                     >
@@ -787,7 +809,7 @@ export default function SOSButton() {
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
+                    onClick={handleClose}
                     className="btn-secondary flex-1"
                   >
                     Закрыть
