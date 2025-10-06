@@ -35,6 +35,18 @@ class GigaChatClient:
         self._token_expiry: Optional[datetime] = None
         self._lock = asyncio.Lock()
 
+        if self._auth_key and (not self._client_id or not self._client_secret):
+            try:
+                decoded = base64.b64decode(self._auth_key).decode("utf-8")
+                if ":" in decoded:
+                    possible_id, possible_secret = decoded.split(":", 1)
+                    if not self._client_id:
+                        self._client_id = possible_id.strip()
+                    if not self._client_secret:
+                        self._client_secret = possible_secret.strip()
+            except (binascii.Error, UnicodeDecodeError):
+                logger.debug("Failed to derive client credentials from GigaChat auth key")
+
     def _resolve_basic_header(self) -> str:
         """Build Authorization header supporting both encoded and raw credentials."""
         credential_source = self._auth_key
