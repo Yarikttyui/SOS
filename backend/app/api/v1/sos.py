@@ -24,7 +24,7 @@ from app.services.ai.voice import VoiceAssistant
 from app.services.ai.image import ImageAnalyzer
 from app.services.sos_service import create_sos_alert, update_sos_status
 from app.services.notification_service import send_notification
-from app.api.v1.websocket import send_alert_to_user, send_alert_update_to_user
+from app.api.v1.websocket import send_alert_to_user, send_alert_update_to_user, broadcast_alert
 
 router = APIRouter()
 
@@ -104,8 +104,13 @@ async def create_alert(
         message=f"New {alert_type_value} alert created",
         alert_id=new_alert.id
     )
+
+    alert_payload = enrich_alert_with_names(new_alert, db)
+
+    # Broadcast to all connected rescuers (excluding the author) to trigger siren notifications
+    asyncio.create_task(broadcast_alert(alert_payload, exclude_user=str(current_user.id)))
     
-    return enrich_alert_with_names(new_alert, db)
+    return alert_payload
 
 
 @router.get("/", response_model=List[SOSAlertResponse])
@@ -341,7 +346,8 @@ async def analyze_voice(
     try:
         analysis = await voice_assistant.analyze_emergency_audio(
             audio_base64=request.audio_base64,
-            language=request.language
+            language=request.language,
+            mime_type=request.mime_type
         )
         return analysis
     except Exception as e:

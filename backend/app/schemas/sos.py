@@ -60,6 +60,7 @@ class VoiceAnalysisRequest(BaseModel):
     """Voice analysis request schema"""
     audio_base64: str
     language: str = "ru"
+    mime_type: Optional[str] = None
 
 
 class ImageAnalysisRequest(BaseModel):

@@ -18,7 +18,12 @@ class VoiceAssistant:
             base_url=settings.OPENAI_BASE_URL
         )
     
-    async def transcribe_audio(self, audio_base64: str, language: str = "ru") -> str:
+    async def transcribe_audio(
+        self,
+        audio_base64: str,
+        language: str = "ru",
+        mime_type: str | None = None
+    ) -> str:
         """
         Transcribe audio to text using Whisper
         
@@ -32,7 +37,23 @@ class VoiceAssistant:
         try:
             audio_data = base64.b64decode(audio_base64)
             audio_file = io.BytesIO(audio_data)
-            audio_file.name = "audio.mp3"
+
+            extension = "mp3"
+            if mime_type:
+                normalized = mime_type.split(";")[0].strip().lower()
+                extension_map = {
+                    "audio/mpeg": "mp3",
+                    "audio/mp3": "mp3",
+                    "audio/webm": "webm",
+                    "audio/ogg": "ogg",
+                    "audio/wav": "wav",
+                    "audio/x-wav": "wav",
+                    "audio/aac": "aac",
+                    "audio/flac": "flac",
+                }
+                extension = extension_map.get(normalized, extension)
+
+            audio_file.name = f"audio.{extension}"
             
             transcript = self.client.audio.transcriptions.create(
                 model="whisper-1",
@@ -47,7 +68,8 @@ class VoiceAssistant:
     async def analyze_emergency_audio(
         self,
         audio_base64: str,
-        language: str = "ru"
+        language: str = "ru",
+        mime_type: str | None = None
     ) -> Dict[str, Any]:
         """
         Analyze emergency audio and extract information
@@ -59,7 +81,7 @@ class VoiceAssistant:
         Returns:
             dict: Emergency analysis results
         """
-        text = await self.transcribe_audio(audio_base64, language)
+        text = await self.transcribe_audio(audio_base64, language, mime_type)
         
         analysis = await self.analyze_emergency_text(text)
         

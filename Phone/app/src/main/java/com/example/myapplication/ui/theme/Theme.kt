@@ -17,67 +17,67 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = EmergencyRedLight,
+    primary = AuroraRose,
     onPrimary = Color.White,
-    primaryContainer = EmergencyRedDark,
+    primaryContainer = AuroraRoseDark,
     onPrimaryContainer = Color.White,
-    
-    secondary = InfoBlue,
+
+    secondary = AuroraViolet,
     onSecondary = Color.White,
-    secondaryContainer = InfoBlueDark,
+    secondaryContainer = AuroraVioletDark,
     onSecondaryContainer = Color.White,
-    
-    tertiary = SuccessGreen,
+
+    tertiary = SkyPulse,
     onTertiary = Color.White,
-    tertiaryContainer = SuccessGreenDark,
+    tertiaryContainer = SkyPulseDark,
     onTertiaryContainer = Color.White,
-    
+
     error = EmergencyRed,
     onError = Color.White,
-    errorContainer = EmergencyRedDark,
+    errorContainer = AuroraRoseDark,
     onErrorContainer = Color.White,
-    
-    background = BackgroundDark,
+
+    background = NightBackground,
     onBackground = Gray100,
-    
-    surface = SurfaceDark,
+
+    surface = CardSurfaceDark,
     onSurface = Gray100,
-    surfaceVariant = Gray800,
+    surfaceVariant = Gray700,
     onSurfaceVariant = Gray300,
-    
+
     outline = Gray600,
     outlineVariant = Gray700
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = EmergencyRed,
+    primary = AuroraRose,
     onPrimary = Color.White,
-    primaryContainer = EmergencyRedLight,
+    primaryContainer = AuroraRoseLight,
     onPrimaryContainer = Color.White,
-    
-    secondary = InfoBlue,
+
+    secondary = SkyPulse,
     onSecondary = Color.White,
-    secondaryContainer = InfoBlueLight,
+    secondaryContainer = SkyPulseLight,
     onSecondaryContainer = Color.White,
-    
-    tertiary = SuccessGreen,
+
+    tertiary = AuroraViolet,
     onTertiary = Color.White,
-    tertiaryContainer = SuccessGreenLight,
+    tertiaryContainer = AuroraVioletLight,
     onTertiaryContainer = Color.White,
-    
+
     error = EmergencyRed,
     onError = Color.White,
     errorContainer = EmergencyRedLight,
     onErrorContainer = Color.White,
-    
-    background = BackgroundLight,
+
+    background = DayBackground,
     onBackground = Gray900,
-    
-    surface = SurfaceLight,
+
+    surface = CardSurfaceLight,
     onSurface = Gray900,
     surfaceVariant = Gray100,
-    onSurfaceVariant = Gray700,
-    
+    onSurfaceVariant = Gray600,
+
     outline = Gray300,
     outlineVariant = Gray200
 )
@@ -102,8 +102,8 @@ fun MyApplicationTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 

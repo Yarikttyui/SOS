@@ -62,6 +62,16 @@ def create_users(db: Session):
             "role": "operator",
             "full_name": "Сергей Операторов"
         },
+
+        {
+            "email": "rescuer@test.ru",
+            "phone": "+79991234590",
+            "password": "Test1234",
+            "role": "rescuer",
+            "full_name": "Тестовый Спасатель",
+            "specialization": "search_rescue",
+            "is_team_leader": True
+        },
         
         {
             "email": "rescuer1@test.ru",
@@ -263,7 +273,7 @@ def create_teams(db: Session, users: dict):
             "type": "multi_purpose",
             "status": "available",
             "leader_email": "rescuer9@test.ru",
-            "members_emails": ["rescuer9@test.ru", "rescuer7@test.ru", "rescuer8@test.ru"],
+            "members_emails": ["rescuer9@test.ru", "rescuer7@test.ru", "rescuer8@test.ru", "rescuer@test.ru"],
             "contact_phone": "+79994444444",
             "contact_email": "omega@rescue.ru",
             "current_latitude": 55.7400,

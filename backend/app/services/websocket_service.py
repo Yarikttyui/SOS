@@ -2,8 +2,7 @@
 WebSocket Service for real-time updates
 """
 from fastapi import WebSocket
-from typing import Dict, List
-from uuid import UUID
+from typing import Dict, List, Optional
 import json
 
 
@@ -43,18 +42,24 @@ class ConnectionManager:
         else:
             print(f"⚠️ User {user_id} not found in active connections!")
     
-    async def broadcast(self, message: dict):
+    async def broadcast(self, message: str, exclude_user: Optional[str] = None):
         """Broadcast message to all connected users"""
-        for user_connections in self.active_connections.values():
-            for connection in user_connections:
+        for user_id, user_connections in list(self.active_connections.items()):
+            if exclude_user and user_id == exclude_user:
+                continue
+
+            for connection in list(user_connections):
                 try:
-                    await connection.send_json(message)
-                except:
-                    pass
+                    await connection.send_text(message)
+                except Exception:
+                    try:
+                        connection.close()
+                    except Exception:
+                        pass
     
     async def broadcast_to_role(self, message: dict, role: str):
         """Broadcast message to users with specific role"""
-        await self.broadcast(message)
+        await self.broadcast(json.dumps(message))
 
 
 manager = ConnectionManager()

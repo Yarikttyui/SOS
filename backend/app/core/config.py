@@ -85,6 +85,8 @@ class Settings(BaseSettings):
     DEFAULT_ZOOM: int = 12
     
     RATE_LIMIT_PER_MINUTE: int = 60
+
+    APK_DOWNLOAD_PATH: str = os.getenv("APK_DOWNLOAD_PATH", "downloads/sos-mobile-latest.apk")
     
     class Config:
         env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
@@ -100,3 +102,7 @@ if not os.path.exists(settings.UPLOAD_DIR):
 
 if not os.path.exists("logs"):
     os.makedirs("logs")
+
+apk_dir = os.path.dirname(settings.APK_DOWNLOAD_PATH)
+if apk_dir and not os.path.exists(apk_dir):
+    os.makedirs(apk_dir, exist_ok=True)

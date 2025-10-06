@@ -2,10 +2,11 @@ package com.example.myapplication.service
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
-import android.net.Uri
+import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -15,6 +16,8 @@ class AlertSoundManager(private val context: Context) {
     
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private val audioManager: AudioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private var audioFocusRequest: AudioFocusRequest? = null
     
     init {
         vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -37,6 +40,8 @@ class AlertSoundManager(private val context: Context) {
             val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             
+            requestAudioFocus()
+
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(context, alertUri)
                 
@@ -49,7 +54,6 @@ class AlertSoundManager(private val context: Context) {
                 )
                 
                 // Устанавливаем максимальную громкость
-                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                 val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
                 audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0)
                 
@@ -91,10 +95,57 @@ class AlertSoundManager(private val context: Context) {
             mediaPlayer = null
             
             stopVibration()
+            releaseAudioFocus()
             
             Log.d("AlertSoundManager", "Alert sound stopped")
         } catch (e: Exception) {
             Log.e("AlertSoundManager", "Error stopping alert sound", e)
+        }
+    }
+
+    private fun requestAudioFocus() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val attributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+
+                audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                    .setAudioAttributes(attributes)
+                    .setOnAudioFocusChangeListener { }
+                    .build()
+
+                audioFocusRequest?.let { audioManager.requestAudioFocus(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                val result = audioManager.requestAudioFocus(
+                    null,
+                    AudioManager.STREAM_ALARM,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+                )
+                if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    Log.w("AlertSoundManager", "Audio focus request denied")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("AlertSoundManager", "Error requesting audio focus", e)
+        }
+    }
+
+    private fun releaseAudioFocus() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                audioFocusRequest?.let { request ->
+                    audioManager.abandonAudioFocusRequest(request)
+                }
+                audioFocusRequest = null
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.abandonAudioFocus(null)
+            }
+        } catch (e: Exception) {
+            Log.e("AlertSoundManager", "Error releasing audio focus", e)
         }
     }
     

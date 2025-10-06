@@ -1,6 +1,7 @@
 package com.example.myapplication.service
 
 import android.util.Log
+import com.example.myapplication.data.AppConfig
 import com.example.myapplication.data.model.SOSAlert
 import com.google.gson.Gson
 import kotlinx.coroutines.*
@@ -18,10 +19,7 @@ class WebSocketManager {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
     
-    // WebSocket server URL
-    // For emulator: use ws://10.0.2.2:8000
-    // For real device: use your computer's IP address
-    private val wsUrl = "ws://192.168.1.113:8000/api/v1/ws"
+    private val wsUrl = AppConfig.websocketUrl
     
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState

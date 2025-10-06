@@ -1,3 +1,4 @@
+import com.example.myapplication.data.AppConfig
 package com.example.myapplication.data.api
 
 import okhttp3.OkHttpClient
@@ -7,11 +8,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    
-    // Backend server IP address
-    // For emulator: use 10.0.2.2
-    // For real device: use your computer's IP address in local network
-    private const val BASE_URL = "http://192.168.1.113:8000/api/v1/"
     
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -26,7 +22,7 @@ object RetrofitClient {
     
     val instance: RescueApiService by lazy {
         val retrofit = Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(AppConfig.apiBaseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

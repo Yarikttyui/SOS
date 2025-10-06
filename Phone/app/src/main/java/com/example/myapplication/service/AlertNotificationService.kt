@@ -8,6 +8,9 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.myapplication.MainActivity
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.net.Uri
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 
@@ -17,6 +20,12 @@ class AlertNotificationService : Service() {
     private lateinit var alertSoundManager: AlertSoundManager
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     
+    private val alertSoundUri: Uri by lazy {
+        RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+    }
+
     companion object {
         private const val FOREGROUND_CHANNEL_ID = "rescue_service_channel"
         private const val ALERT_CHANNEL_ID = "rescue_alerts_channel"
@@ -161,6 +170,18 @@ class AlertNotificationService : Service() {
                 enableLights(true)
                 setShowBadge(true)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    setAllowBubbles(true)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    setBypassDnd(true)
+                }
+
+                val attributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                setSound(alertSoundUri, attributes)
             }
             
             notificationManager.createNotificationChannel(foregroundChannel)
@@ -217,6 +238,11 @@ class AlertNotificationService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         
+        val attributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
         val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setContentTitle("🚨 ЭКСТРЕННЫЙ ВЫЗОВ!")
             .setContentText(title)
@@ -229,11 +255,13 @@ class AlertNotificationService : Service() {
             .setOngoing(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setVibrate(longArrayOf(0, 500, 200, 500, 200, 500))
+            .setSound(alertSoundUri, attributes)
             .addAction(
                 android.R.drawable.ic_lock_silent_mode_off,
                 "Остановить сирену",
                 stopSoundPendingIntent
             )
+            .setFullScreenIntent(pendingIntent, true)
             .build()
         
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

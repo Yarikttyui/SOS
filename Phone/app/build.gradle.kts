@@ -8,6 +8,9 @@ android {
     namespace = "com.example.myapplication"
     compileSdk = 35
 
+    val apiBaseUrl = (project.findProperty("API_BASE_URL") as String?) ?: "http://10.0.2.2:8000"
+    val wsBaseUrl = (project.findProperty("WS_BASE_URL") as String?) ?: "ws://10.0.2.2:8000"
+
     defaultConfig {
         applicationId = "com.example.myapplication"
         minSdk = 24
@@ -16,6 +19,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "WS_BASE_URL", "\"$wsBaseUrl\"")
     }
 
     buildTypes {
