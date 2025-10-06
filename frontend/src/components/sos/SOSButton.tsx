@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, MapPin, Mic, Sparkles, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { api } from '../../services/api'
@@ -39,6 +39,26 @@ interface AIAnalysis {
   provider?: string
   reference?: AIReferenceData
   llm_raw?: unknown
+  error?: string
+}
+
+interface VoiceAnalysisResult {
+  transcription?: string
+  emergency_type?: string
+  priority?: number
+  severity?: string
+  description?: string
+  location_info?: string
+  victim_count?: number | null
+  victim_condition?: string | null
+  caller_state?: string | null
+  hazards?: string[]
+  recommendations?: string[]
+  required_resources?: string[]
+  immediate_actions?: string[]
+  keywords?: string[]
+  confidence?: number | null
+  time_sensitive?: boolean
   error?: string
 }
 
@@ -198,6 +218,18 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
   const [manualLongitude, setManualLongitude] = useState('')
   const [useManualLocation, setUseManualLocation] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingDuration, setRecordingDuration] = useState(0)
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false)
+  const [voiceError, setVoiceError] = useState<string | null>(null)
+  const [voiceTranscription, setVoiceTranscription] = useState<string | null>(null)
+  const [voiceAnalysis, setVoiceAnalysis] = useState<VoiceAnalysisResult | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordingChunksRef = useRef<BlobPart[]>([])
+  const recordingStreamRef = useRef<MediaStream | null>(null)
+  const recordingStartTimeRef = useRef<number | null>(null)
+  const recordingTimerRef = useRef<number | undefined>(undefined)
+  const recordingMimeTypeRef = useRef<string>('audio/webm')
   const {
     latitude,
     longitude,
@@ -210,6 +242,36 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
     resetLocation,
   } = useGeolocation()
   const hasCoordinates = typeof latitude === 'number' && typeof longitude === 'number'
+  const canUseVoiceInput = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return typeof window.MediaRecorder !== 'undefined' && typeof navigator !== 'undefined' &&
+      Boolean(navigator.mediaDevices?.getUserMedia)
+  }, [])
+  const formattedRecordingDuration = useMemo(() => {
+    const totalSeconds = Math.max(0, recordingDuration)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }, [recordingDuration])
+  const voiceStatusLabel = useMemo(() => {
+    if (!canUseVoiceInput) return 'Ваш браузер не поддерживает запись голоса'
+    if (voiceError) return voiceError
+    if (isProcessingVoice) return 'Обрабатываем и анализируем запись…'
+    if (isRecording) return 'Идёт запись. Нажмите, чтобы остановить.'
+    if (voiceTranscription) return 'Запись готова. Можно перезаписать или использовать текст.'
+    return 'Расскажите о ситуации голосом — ассистент определит детали за вас'
+  }, [canUseVoiceInput, isProcessingVoice, isRecording, voiceTranscription, voiceError])
+  const voiceActionLabel = useMemo(() => {
+    if (isProcessingVoice) return 'Обработка…'
+    if (isRecording) return 'Остановить запись'
+    if (voiceTranscription) return 'Перезаписать'
+    return 'Начать запись'
+  }, [isProcessingVoice, isRecording, voiceTranscription])
+  const voiceConfidence = useMemo(() => {
+    if (!voiceAnalysis?.confidence && voiceAnalysis?.confidence !== 0) return null
+    const value = Math.round(Math.max(0, Math.min(1, voiceAnalysis.confidence ?? 0)) * 100)
+    return `${value}%`
+  }, [voiceAnalysis])
 
   const handleClose = () => {
     setShowModal(false)
@@ -280,6 +342,273 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
     }
   }
 
+  const resetVoiceWorkflow = useCallback((options?: { skipStateReset?: boolean }) => {
+    if (recordingTimerRef.current !== undefined) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = undefined
+    }
+    recordingStartTimeRef.current = null
+    recordingChunksRef.current = []
+
+    if (recordingStreamRef.current) {
+      recordingStreamRef.current.getTracks().forEach((track) => track.stop())
+      recordingStreamRef.current = null
+    }
+
+    mediaRecorderRef.current = null
+    if (!options?.skipStateReset) {
+      setIsRecording(false)
+      setRecordingDuration(0)
+    }
+  }, [])
+
+  const blobToBase64 = useCallback((blob: Blob) => {
+    return new Promise<string>((resolve, reject) => {
+      try {
+        const reader = new FileReader()
+        reader.onerror = () => reject(new Error('Не удалось прочитать аудио файл'))
+        reader.onloadend = () => {
+          const result = reader.result
+          if (typeof result === 'string') {
+            const base64 = result.includes(',') ? result.split(',')[1] : result
+            resolve(base64)
+          } else {
+            reject(new Error('Неподдерживаемый формат голосовой записи'))
+          }
+        }
+        reader.readAsDataURL(blob)
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error('Ошибка чтения голосовой записи'))
+      }
+    })
+  }, [])
+
+  const sendVoiceForAnalysis = useCallback(async (audioBlob: Blob, mimeType: string) => {
+    setVoiceError(null)
+
+    try {
+      const audioBase64 = await blobToBase64(audioBlob)
+      const response = await api.post('/api/v1/sos/analyze/voice', {
+        audio_base64: audioBase64,
+        language: 'ru',
+        mime_type: mimeType,
+      })
+
+      const analysis = response.data as VoiceAnalysisResult | null
+      setVoiceAnalysis(analysis)
+
+      const transcriptionText = analysis?.transcription?.trim()
+      if (transcriptionText) {
+        setVoiceTranscription(transcriptionText)
+        if (!description.trim()) {
+          setDescription(transcriptionText)
+        }
+      }
+
+      if (analysis?.description && !title.trim()) {
+        setTitle(analysis.description.trim().slice(0, 120))
+      }
+
+      if (analysis?.emergency_type && TYPE_FALLBACKS[analysis.emergency_type]) {
+        setEmergencyType(analysis.emergency_type as EmergencyType)
+      }
+    } catch (error) {
+      console.error('Voice analysis failed', error)
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const maybeAxios = error as { response?: { data?: { detail?: string; message?: string } } }
+        const serverMessage = maybeAxios.response?.data?.detail || maybeAxios.response?.data?.message
+        if (serverMessage) {
+          throw new Error(serverMessage)
+        }
+      }
+
+      if (error instanceof Error) {
+        throw error
+      }
+
+      throw new Error('Не удалось выполнить голосовой анализ. Повторите попытку позже.')
+    }
+  }, [blobToBase64, description, setDescription, setEmergencyType, setTitle, title])
+
+  const handleStartRecording = useCallback(async () => {
+    if (isRecording || isProcessingVoice) {
+      return
+    }
+
+    if (!canUseVoiceInput) {
+      setVoiceError('Голосовая запись недоступна в вашем браузере')
+      return
+    }
+
+    setVoiceError(null)
+    setVoiceAnalysis(null)
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+      const supportedMimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/ogg;codecs=opus',
+        'audio/webm',
+        'audio/ogg',
+        'audio/mpeg',
+        'audio/wav',
+      ]
+
+      const availableMimeType = supportedMimeTypes.find((type) => {
+        try {
+          return MediaRecorder.isTypeSupported(type)
+        } catch (error) {
+          return false
+        }
+      })
+
+      const recorder = availableMimeType
+        ? new MediaRecorder(stream, { mimeType: availableMimeType })
+        : new MediaRecorder(stream)
+
+      recordingMimeTypeRef.current = recorder.mimeType || availableMimeType || 'audio/webm'
+      recordingStreamRef.current = stream
+      recordingChunksRef.current = []
+
+      recorder.addEventListener('dataavailable', (event) => {
+        if (event.data && event.data.size > 0) {
+          recordingChunksRef.current.push(event.data)
+        }
+      })
+
+      mediaRecorderRef.current = recorder
+      recordingStartTimeRef.current = Date.now()
+      setRecordingDuration(0)
+      setIsRecording(true)
+
+      recorder.start()
+
+      if (recordingTimerRef.current !== undefined) {
+        clearInterval(recordingTimerRef.current)
+      }
+
+      recordingTimerRef.current = window.setInterval(() => {
+        if (!recordingStartTimeRef.current) return
+        const elapsedSeconds = Math.floor((Date.now() - recordingStartTimeRef.current) / 1000)
+        setRecordingDuration(elapsedSeconds)
+
+        if (elapsedSeconds >= 90 && mediaRecorderRef.current?.state === 'recording') {
+          mediaRecorderRef.current.stop()
+        }
+      }, 500)
+    } catch (error) {
+      console.error('Microphone access denied', error)
+      setVoiceError('Не удалось получить доступ к микрофону. Проверьте разрешения в браузере.')
+      resetVoiceWorkflow()
+    }
+  }, [canUseVoiceInput, isProcessingVoice, isRecording, resetVoiceWorkflow])
+
+  const handleStopRecording = useCallback(async () => {
+    if (!mediaRecorderRef.current || isProcessingVoice) {
+      return
+    }
+
+    setIsRecording(false)
+    setIsProcessingVoice(true)
+    setVoiceError(null)
+
+    try {
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        const recorder = mediaRecorderRef.current
+        if (!recorder) {
+          reject(new Error('Запись не найдена'))
+          return
+        }
+
+        const finalize = () => {
+          if (recordingTimerRef.current !== undefined) {
+            clearInterval(recordingTimerRef.current)
+            recordingTimerRef.current = undefined
+          }
+          recordingStartTimeRef.current = null
+
+          if (recordingStreamRef.current) {
+            recordingStreamRef.current.getTracks().forEach((track) => track.stop())
+            recordingStreamRef.current = null
+          }
+        }
+
+        const handleStop = () => {
+          finalize()
+          const chunks = recordingChunksRef.current
+          recordingChunksRef.current = []
+          const mimeType = recordingMimeTypeRef.current || recorder.mimeType || 'audio/webm'
+          mediaRecorderRef.current = null
+
+          if (!chunks.length) {
+            reject(new Error('Запись получилась пустой. Попробуйте снова.'))
+            return
+          }
+
+          try {
+            const audioBlob = new Blob(chunks, { type: mimeType })
+            resolve(audioBlob)
+          } catch (blobError) {
+            reject(blobError instanceof Error ? blobError : new Error('Не удалось обработать запись'))
+          }
+        }
+
+        const handleError = (event: Event) => {
+          finalize()
+          mediaRecorderRef.current = null
+          const mediaError = (event as { error?: DOMException }).error
+          reject(mediaError || new Error('Ошибка записи голоса'))
+        }
+
+        recorder.addEventListener('stop', handleStop, { once: true })
+        recorder.addEventListener('error', handleError, { once: true })
+
+        if (recorder.state === 'inactive') {
+          handleStop()
+          return
+        }
+
+        recorder.stop()
+      })
+
+      const mimeType = recordingMimeTypeRef.current || blob.type || 'audio/webm'
+      await sendVoiceForAnalysis(blob, mimeType)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось обработать голосовое сообщение'
+      setVoiceError(message)
+    } finally {
+      setIsProcessingVoice(false)
+      resetVoiceWorkflow()
+    }
+  }, [isProcessingVoice, resetVoiceWorkflow, sendVoiceForAnalysis])
+
+  const handleApplyTranscription = useCallback(() => {
+    if (!voiceTranscription) return
+
+    setDescription((prev) => {
+      if (!prev.trim()) {
+        return voiceTranscription
+      }
+
+      if (prev.includes(voiceTranscription)) {
+        return prev
+      }
+
+      return `${prev.trim()}
+
+${voiceTranscription}`
+    })
+  }, [setDescription, voiceTranscription])
+
+  const handleClearVoiceData = useCallback(() => {
+    setVoiceTranscription(null)
+    setVoiceAnalysis(null)
+    setVoiceError(null)
+    setRecordingDuration(0)
+  }, [])
+
   useEffect(() => {
     if (!showModal) {
       setManualLatitude('')
@@ -289,6 +618,19 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
       resetLocation()
     }
   }, [showModal, resetLocation])
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop()
+        } catch (error) {
+          console.warn('Не удалось корректно остановить запись при размонтировании компонента', error)
+        }
+      }
+      resetVoiceWorkflow({ skipStateReset: true })
+    }
+  }, [resetVoiceWorkflow])
 
   const handleSOSClick = async () => {
     console.log('🆘 SOS Button clicked!')
@@ -790,21 +1132,256 @@ export default function SOSButton({ autoOpen = false, hideTrigger = false, onClo
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  className="group relative w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-5 text-left shadow-[0_24px_60px_rgba(168,85,247,0.25)] transition hover:border-white/30 hover:bg-white/10"
-                >
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-sky-500/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <div className="relative flex items-center justify-center gap-3">
-                    <div className="rounded-2xl border border-purple-300/40 bg-purple-500/15 p-3 text-purple-100">
-                      <Mic className="h-5 w-5" />
+                <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-5 text-left shadow-[0_24px_60px_rgba(168,85,247,0.25)]">
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/15 to-sky-500/20 opacity-80" />
+                  <div className="relative space-y-4 text-white">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-2xl border border-purple-300/40 bg-purple-500/20 p-3 text-purple-100 shadow-inner">
+                          <Mic className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold">Голосовой ассистент</p>
+                          <p className="text-xs leading-snug text-white/70">{voiceStatusLabel}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        {voiceConfidence && (
+                          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 font-semibold text-white/80">
+                            ⚙️ Уверенность AI: {voiceConfidence}
+                          </span>
+                        )}
+                        {isRecording && (
+                          <span className="inline-flex items-center gap-2 rounded-full border border-rose-300/60 bg-rose-500/15 px-3 py-1 font-semibold text-rose-100 animate-pulse">
+                            ⏺ {formattedRecordingDuration}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <span className="block text-sm font-semibold text-white">Описать голосом</span>
-                      <span className="text-xs text-white/60">Скоро будет доступно</span>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isRecording) {
+                            void handleStopRecording()
+                          } else {
+                            void handleStartRecording()
+                          }
+                        }}
+                        disabled={!canUseVoiceInput || isProcessingVoice}
+                        className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:cursor-not-allowed ${
+                          isRecording
+                            ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-orange-400 text-white shadow-[0_12px_35px_rgba(244,63,94,0.45)]'
+                            : 'bg-gradient-to-r from-purple-500 via-violet-500 to-blue-500 text-white shadow-[0_12px_35px_rgba(139,92,246,0.35)] hover:shadow-[0_16px_40px_rgba(139,92,246,0.45)]'
+                        } ${
+                          isProcessingVoice || !canUseVoiceInput
+                            ? 'opacity-70'
+                            : 'hover:opacity-90'
+                        }`}
+                      >
+                        {isProcessingVoice ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+                            Обрабатываем...
+                          </span>
+                        ) : (
+                          voiceActionLabel
+                        )}
+                      </button>
+                      {voiceTranscription && (
+                        <button
+                          type="button"
+                          onClick={handleClearVoiceData}
+                          className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white/70 transition hover:border-white/40 hover:text-white sm:w-auto"
+                        >
+                          Очистить результат
+                        </button>
+                      )}
                     </div>
+
+                    {isProcessingVoice && (
+                      <p className="flex items-center gap-2 text-xs text-white/70">
+                        <span className="inline-flex h-3 w-3 animate-pulse rounded-full bg-white/70" />
+                        Анализируем голосовое сообщение. Это может занять несколько секунд.
+                      </p>
+                    )}
+
+                    {voiceTranscription && (
+                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-inner">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                              Расшифровка
+                            </p>
+                            {!isRecording && formattedRecordingDuration !== '00:00' && (
+                              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/70">
+                                Длительность: {formattedRecordingDuration}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm leading-relaxed text-white/80 whitespace-pre-line">
+                            {voiceTranscription}
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            <button
+                              type="button"
+                              onClick={handleApplyTranscription}
+                              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-3 py-1 font-semibold text-emerald-100 transition hover:border-emerald-300/60 hover:text-white"
+                            >
+                              Добавить к описанию
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setVoiceTranscription(null)}
+                              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/70 transition hover:border-white/30 hover:text-white"
+                            >
+                              Скрыть текст
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {voiceAnalysis && (
+                      <div className="space-y-4 rounded-2xl border border-purple-300/30 bg-purple-500/10 p-4 shadow-[inset_0_0_25px_rgba(99,102,241,0.3)]">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-white/70">
+                          {voiceAnalysis.emergency_type && (
+                            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1">
+                              Тип: {TYPE_FALLBACKS[voiceAnalysis.emergency_type]?.name || voiceAnalysis.emergency_type}
+                            </span>
+                          )}
+                          {typeof voiceAnalysis.priority === 'number' && (
+                            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1">
+                              Приоритет: {voiceAnalysis.priority}
+                            </span>
+                          )}
+                          {voiceAnalysis.severity && (
+                            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1">
+                              Тяжесть: {voiceAnalysis.severity}
+                            </span>
+                          )}
+                          {voiceAnalysis.time_sensitive && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/50 bg-rose-500/20 px-3 py-1 text-rose-100">
+                              🔥 Критично по времени
+                            </span>
+                          )}
+                        </div>
+
+                        {voiceAnalysis.description && (
+                          <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-xs leading-relaxed text-white/80">
+                            {voiceAnalysis.description}
+                          </div>
+                        )}
+
+                        {(voiceAnalysis.location_info || voiceAnalysis.victim_count !== undefined || voiceAnalysis.caller_state) && (
+                          <div className="grid gap-2 text-xs text-white/75 sm:grid-cols-3">
+                            {voiceAnalysis.location_info && (
+                              <div>
+                                <p className="font-semibold text-white/80">Локация</p>
+                                <p>{voiceAnalysis.location_info}</p>
+                              </div>
+                            )}
+                            {voiceAnalysis.victim_count !== undefined && (
+                              <div>
+                                <p className="font-semibold text-white/80">Пострадавшие</p>
+                                <p>{voiceAnalysis.victim_count ?? 'Не уточнено'}</p>
+                              </div>
+                            )}
+                            {voiceAnalysis.caller_state && (
+                              <div>
+                                <p className="font-semibold text-white/80">Состояние звонящего</p>
+                                <p className="capitalize">{voiceAnalysis.caller_state}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {voiceAnalysis.immediate_actions && voiceAnalysis.immediate_actions.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-white/80">Немедленные действия</p>
+                            <ul className="space-y-1 text-xs text-white/80">
+                              {voiceAnalysis.immediate_actions.map((action, index) => (
+                                <li key={index} className="flex items-start gap-2">
+                                  <span className="font-semibold text-rose-200">{index + 1}.</span>
+                                  <span>{action}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {voiceAnalysis.recommendations && voiceAnalysis.recommendations.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-white/80">Рекомендации</p>
+                            <ul className="space-y-1 text-xs text-white/75">
+                              {voiceAnalysis.recommendations.map((item, index) => (
+                                <li key={index} className="flex items-start gap-2">
+                                  <span className="text-purple-200">•</span>
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {voiceAnalysis.required_resources && voiceAnalysis.required_resources.length > 0 && (
+                          <div className="space-y-2 text-xs">
+                            <p className="font-semibold text-white/80">Необходимые ресурсы</p>
+                            <div className="flex flex-wrap gap-2">
+                              {voiceAnalysis.required_resources.map((resource, index) => (
+                                <span
+                                  key={index}
+                                  className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] text-white/75"
+                                >
+                                  {resource}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {voiceAnalysis.hazards && voiceAnalysis.hazards.length > 0 && (
+                          <div className="space-y-2 text-xs">
+                            <p className="font-semibold text-white/80">Опасности</p>
+                            <div className="flex flex-wrap gap-2">
+                              {voiceAnalysis.hazards.map((hazard, index) => (
+                                <span
+                                  key={index}
+                                  className="rounded-full border border-rose-300/40 bg-rose-500/15 px-3 py-1 text-[11px] text-rose-100"
+                                >
+                                  {hazard}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {voiceAnalysis.keywords && voiceAnalysis.keywords.length > 0 && (
+                          <div className="space-y-2 text-xs">
+                            <p className="font-semibold text-white/80">Ключевые слова</p>
+                            <div className="flex flex-wrap gap-2">
+                              {voiceAnalysis.keywords.map((keyword, index) => (
+                                <span
+                                  key={index}
+                                  className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] text-white/70"
+                                >
+                                  #{keyword}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {voiceAnalysis.error && (
+                          <div className="rounded-2xl border border-rose-300/60 bg-rose-500/20 p-3 text-xs text-rose-100">
+                            ⚠️ {voiceAnalysis.error}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </button>
+                </section>
 
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                   <button
