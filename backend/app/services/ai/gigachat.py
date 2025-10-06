@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, List
 
 import httpx
+from email.utils import formatdate
 
 from app.core.config import settings
 
@@ -89,7 +90,11 @@ class GigaChatClient:
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Accept": "application/json",
                 "RqUID": str(uuid.uuid4()),
+                "Date": formatdate(usegmt=True),
             }
+
+            if self._client_id:
+                headers.setdefault("X-Client-ID", self._client_id)
 
             async with httpx.AsyncClient(verify=self._verify, timeout=30) as client:
                 response = await client.post(token_url, headers=headers, data=payload)
@@ -130,14 +135,19 @@ class GigaChatClient:
         while attempt < 2:
             attempt += 1
             async with httpx.AsyncClient(verify=self._verify, timeout=60) as client:
+                headers = {
+                    "Authorization": f"Bearer {self._token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "RqUID": str(uuid.uuid4()),
+                    "Date": formatdate(usegmt=True),
+                }
+                if self._client_id:
+                    headers.setdefault("X-Client-ID", self._client_id)
+
                 response = await client.post(
                     completion_url,
-                    headers={
-                        "Authorization": f"Bearer {self._token}",
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                        "RqUID": str(uuid.uuid4()),
-                    },
+                    headers=headers,
                     content=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                 )
 
