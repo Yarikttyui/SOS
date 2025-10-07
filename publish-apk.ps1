@@ -39,6 +39,7 @@ $rootDir = Get-RootDirectory
 $phoneDir = Join-Path $rootDir 'Phone'
 $backendDir = Join-Path $rootDir 'backend'
 $downloadsDir = Join-Path $backendDir 'downloads'
+$rootDownloadsDir = Join-Path $rootDir 'downloads'
 $gradleWrapper = Join-Path $phoneDir 'gradlew.bat'
 
 function Set-JavaEnvironment {
@@ -97,34 +98,36 @@ if (-not $latestApk) {
     throw "No APK files produced in $apkOutputPath"
 }
 
-if (-not (Test-Path $downloadsDir)) {
-    Write-Info "Creating backend downloads directory at $downloadsDir"
-    New-Item -ItemType Directory -Path $downloadsDir -Force | Out-Null
+foreach ($targetDir in @($downloadsDir, $rootDownloadsDir)) {
+    if (-not (Test-Path $targetDir)) {
+        Write-Info "Creating downloads directory at $targetDir"
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+    }
+
+    $destinationApk = Join-Path $targetDir $OutputName
+    Copy-Item -Path $latestApk.FullName -Destination $destinationApk -Force
+
+    Write-Info "APK copied to $destinationApk"
+
+    $hash = (Get-FileHash -Path $destinationApk -Algorithm SHA256).Hash
+    $fileInfo = Get-Item $destinationApk
+    $timestamp = (Get-Date).ToUniversalTime().ToString('o')
+
+    $metadata = [ordered]@{
+        versionName = $VersionName
+        versionCode = $VersionCode
+        variant = $Variant
+        apiBaseUrl = $ApiBaseUrl
+        wsBaseUrl = $WsBaseUrl
+        fileName = $OutputName
+        sizeBytes = $fileInfo.Length
+        sha256 = $hash
+        publishedAtUtc = $timestamp
+    }
+
+    $metadataPath = Join-Path $targetDir 'android-metadata.json'
+    $metadata | ConvertTo-Json -Depth 5 | Set-Content -Path $metadataPath -Encoding UTF8
+
+    Write-Info "Metadata saved to $metadataPath"
 }
-
-$destinationApk = Join-Path $downloadsDir $OutputName
-Copy-Item -Path $latestApk.FullName -Destination $destinationApk -Force
-
-Write-Info "APK copied to $destinationApk"
-
-$hash = (Get-FileHash -Path $destinationApk -Algorithm SHA256).Hash
-$fileInfo = Get-Item $destinationApk
-$timestamp = (Get-Date).ToUniversalTime().ToString('o')
-
-$metadata = [ordered]@{
-    versionName = $VersionName
-    versionCode = $VersionCode
-    variant = $Variant
-    apiBaseUrl = $ApiBaseUrl
-    wsBaseUrl = $WsBaseUrl
-    fileName = $OutputName
-    sizeBytes = $fileInfo.Length
-    sha256 = $hash
-    publishedAtUtc = $timestamp
-}
-
-$metadataPath = Join-Path $downloadsDir 'android-metadata.json'
-$metadata | ConvertTo-Json -Depth 5 | Set-Content -Path $metadataPath -Encoding UTF8
-
-Write-Info "Metadata saved to $metadataPath"
 Write-Info 'Done'

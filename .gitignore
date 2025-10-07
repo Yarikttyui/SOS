@@ -77,3 +77,4 @@ out/
 .expo-shared/
 ios/
 android/
+release.keystore
