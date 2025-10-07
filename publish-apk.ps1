@@ -13,7 +13,11 @@ param(
 
     [string]$VersionName = '1.0',
 
-    [int]$VersionCode = 1
+    [int]$VersionCode = 1,
+
+    [string]$ApiFallbackUrl = '',
+
+    [string]$WsFallbackUrl = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -82,6 +86,14 @@ $gradleArgs = @(
     "-PVERSION_NAME=$VersionName",
     "-PVERSION_CODE=$VersionCode"
 )
+
+if ($ApiFallbackUrl) {
+    $gradleArgs += "-PAPI_FALLBACK_URL=$ApiFallbackUrl"
+}
+
+if ($WsFallbackUrl) {
+    $gradleArgs += "-PWS_FALLBACK_URL=$WsFallbackUrl"
+}
 
 $process = Start-Process -FilePath $gradleWrapper -WorkingDirectory $phoneDir -ArgumentList $gradleArgs -NoNewWindow -PassThru -Wait
 if ($process.ExitCode -ne 0) {

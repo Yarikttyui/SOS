@@ -9,6 +9,8 @@ android {
 
     val apiBaseUrl = (project.findProperty("API_BASE_URL") as String?) ?: "http://10.0.2.2:8000"
     val wsBaseUrl = (project.findProperty("WS_BASE_URL") as String?) ?: "ws://10.0.2.2:8000"
+    val apiFallbackUrl = (project.findProperty("API_FALLBACK_URL") as String?) ?: ""
+    val wsFallbackUrl = (project.findProperty("WS_FALLBACK_URL") as String?) ?: ""
     val versionNameProp = (project.findProperty("VERSION_NAME") as String?) ?: "1.0"
     val versionCodeProp = (project.findProperty("VERSION_CODE") as String?)?.toIntOrNull() ?: 1
 
@@ -16,13 +18,15 @@ android {
         applicationId = "com.example.myapplication"
         minSdk = 24
         targetSdk = 35
-    versionCode = versionCodeProp
-    versionName = versionNameProp
+        versionCode = versionCodeProp
+        versionName = versionNameProp
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "WS_BASE_URL", "\"$wsBaseUrl\"")
+        buildConfigField("String", "API_FALLBACK_URL", "\"${apiFallbackUrl.trim()}\"")
+        buildConfigField("String", "WS_FALLBACK_URL", "\"${wsFallbackUrl.trim()}\"")
     }
 
     signingConfigs {
