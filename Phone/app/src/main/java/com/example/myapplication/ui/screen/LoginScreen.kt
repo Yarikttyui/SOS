@@ -5,7 +5,19 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -13,8 +25,23 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,51 +53,59 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.ui.theme.*
+import com.example.myapplication.ui.theme.EmergencyRed
+import com.example.myapplication.ui.theme.EmergencyRedDark
+import com.example.myapplication.ui.theme.EmergencyRedLight
+import com.example.myapplication.ui.theme.Gray200
+import com.example.myapplication.ui.theme.Gray300
+import com.example.myapplication.ui.theme.Gray500
+import com.example.myapplication.ui.theme.Gray600
+import com.example.myapplication.ui.theme.Gray900
+import com.example.myapplication.ui.theme.InfoBlue
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onLogin: (String, String, onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit
+    onLogin: (
+        email: String,
+        password: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    
+    var isLoading by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
+                Brush.verticalGradient(
+                    listOf(
                         EmergencyRed,
                         EmergencyRedDark
                     )
                 )
             )
+            .padding(horizontal = 24.dp, vertical = 48.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo Section
-            Card(
-                modifier = Modifier
-                    .size(120.dp)
-                    .padding(bottom = 24.dp),
-                shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.2f)
-                ),
-                elevation = CardDefaults.cardElevation(0.dp)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -78,27 +113,27 @@ fun LoginScreen(
                         fontSize = 64.sp
                     )
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Служба спасения",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+
+                Text(
+                    text = "Система экстренного реагирования",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
             }
-            
-            Text(
-                text = "Служба спасения",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            Text(
-                text = "Система экстренного реагирования",
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.padding(bottom = 48.dp)
-            )
-            
-            // Login Card
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .wrapContentHeight()
                     .clip(RoundedCornerShape(24.dp)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 colors = CardDefaults.cardColors(
@@ -118,11 +153,10 @@ fun LoginScreen(
                         fontWeight = FontWeight.Bold,
                         color = Gray900
                     )
-                    
-                    // Email field
+
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { 
+                        onValueChange = {
                             email = it
                             errorMessage = null
                         },
@@ -146,11 +180,10 @@ fun LoginScreen(
                             focusedLabelColor = EmergencyRed
                         )
                     )
-                    
-                    // Password field
+
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { 
+                        onValueChange = {
                             password = it
                             errorMessage = null
                         },
@@ -165,22 +198,25 @@ fun LoginScreen(
                         },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        visualTransformation = if (passwordVisible) 
-                            VisualTransformation.None 
-                        else 
-                            PasswordVisualTransformation(),
+                        visualTransformation = if (passwordVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    imageVector = if (passwordVisible) 
-                                        Icons.Default.Visibility 
-                                    else 
-                                        Icons.Default.VisibilityOff,
-                                    contentDescription = if (passwordVisible) 
-                                        "Скрыть пароль" 
-                                    else 
-                                        "Показать пароль",
+                                    imageVector = if (passwordVisible) {
+                                        Icons.Default.Visibility
+                                    } else {
+                                        Icons.Default.VisibilityOff
+                                    },
+                                    contentDescription = if (passwordVisible) {
+                                        "Скрыть пароль"
+                                    } else {
+                                        "Показать пароль"
+                                    },
                                     tint = Gray500
                                 )
                             }
@@ -193,8 +229,7 @@ fun LoginScreen(
                             focusedLabelColor = EmergencyRed
                         )
                     )
-                    
-                    // Error message
+
                     AnimatedVisibility(
                         visible = errorMessage != null,
                         enter = fadeIn() + slideInVertically(),
@@ -216,20 +251,17 @@ fun LoginScreen(
                             )
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Login button
+
                     Button(
                         onClick = {
                             if (email.isBlank() || password.isBlank()) {
                                 errorMessage = "Заполните все поля"
                                 return@Button
                             }
-                            
+
                             isLoading = true
                             errorMessage = null
-                            
+
                             onLogin(
                                 email,
                                 password,
@@ -264,70 +296,83 @@ fun LoginScreen(
                             )
                         } else {
                             Text(
-                                "Войти в систему",
+                                text = "Войти в систему",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                    
-                    // Quick test logins
+
                     Divider(
                         modifier = Modifier.padding(vertical = 16.dp),
                         color = Gray200
                     )
-                    
+
                     Text(
                         text = "Быстрый вход для тестирования:",
                         fontSize = 12.sp,
                         color = Gray600,
                         fontWeight = FontWeight.Medium
                     )
-                    
-                    Row(
+
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        maxItemsInEachRow = 2
                     ) {
-                        OutlinedButton(
-                            onClick = {
-                                email = "rescuer@test.ru"
-                                password = "Test1234"
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = EmergencyRed
-                            )
+                        QuickLoginButton(
+                            label = "Спасатель",
+                            emoji = "🚒",
+                            tint = EmergencyRed,
+                            enabled = !isLoading
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("🚒", fontSize = 24.sp)
-                                Text("Спасатель", fontSize = 12.sp)
-                            }
+                            email = "rescuer@test.ru"
+                            password = "Test1234"
                         }
-                        
-                        OutlinedButton(
-                            onClick = {
-                                email = "citizen@test.ru"
-                                password = "Test1234"
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = InfoBlue
-                            )
+
+                        QuickLoginButton(
+                            label = "Гражданин",
+                            emoji = "👤",
+                            tint = InfoBlue,
+                            enabled = !isLoading
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("👤", fontSize = 24.sp)
-                                Text("Гражданин", fontSize = 12.sp)
-                            }
+                            email = "citizen@test.ru"
+                            password = "Test1234"
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun QuickLoginButton(
+    label: String,
+    emoji: String,
+    tint: Color,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .widthIn(min = 140.dp, max = 200.dp)
+            .height(56.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = tint
+        )
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(emoji, fontSize = 24.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(label, fontSize = 12.sp)
         }
     }
 }

@@ -1,5 +1,6 @@
-import com.example.myapplication.data.AppConfig
 package com.example.myapplication.data.api
+
+import com.example.myapplication.data.AppConfig
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

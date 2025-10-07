@@ -25,7 +25,12 @@ function Write-Info($Message) {
 function Get-RootDirectory {
     $scriptPath = $MyInvocation.MyCommand.Path
     if (-not $scriptPath) {
-        throw 'Unable to determine script path. Run the script from file system context.'
+        $invocation = (Get-Variable MyInvocation -Scope 1 -ErrorAction SilentlyContinue).Value
+        if ($invocation -and $invocation.PSScriptRoot) {
+            return $invocation.PSScriptRoot
+        }
+        Write-Info 'Fallback to current location for script root.'
+        return (Get-Location).Path
     }
     return Split-Path -Parent $scriptPath
 }
@@ -36,6 +41,32 @@ $backendDir = Join-Path $rootDir 'backend'
 $downloadsDir = Join-Path $backendDir 'downloads'
 $gradleWrapper = Join-Path $phoneDir 'gradlew.bat'
 
+function Set-JavaEnvironment {
+    if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+        Write-Info "Using JAVA_HOME from environment: $env:JAVA_HOME"
+        return
+    }
+
+    $embeddedJdkRoot = Join-Path $rootDir '.jdk'
+    if (Test-Path $embeddedJdkRoot) {
+        $jdkCandidates = Get-ChildItem -Path $embeddedJdkRoot -Directory | Where-Object {
+            Test-Path (Join-Path $_.FullName 'bin\java.exe')
+        } | Sort-Object Name -Descending
+
+        if ($jdkCandidates) {
+            $selectedJdk = $jdkCandidates | Select-Object -First 1
+            $env:JAVA_HOME = $selectedJdk.FullName
+            $env:PATH = "${env:JAVA_HOME}\bin;${env:PATH}"
+            Write-Info "Configured JAVA_HOME to embedded JDK: $($selectedJdk.Name)"
+            return
+        }
+    }
+
+    throw 'Java JDK not found. Install JDK 11+ and set JAVA_HOME.'
+}
+
+Set-JavaEnvironment
+
 if (-not (Test-Path $gradleWrapper)) {
     throw "Gradle wrapper not found at $gradleWrapper"
 }
@@ -43,7 +74,13 @@ if (-not (Test-Path $gradleWrapper)) {
 Write-Info "Building $Variant APK using $ApiBaseUrl"
 
 $taskName = "assemble$([char]::ToUpper($Variant.Substring(0,1)))$($Variant.Substring(1))"
-$gradleArgs = @($taskName, "-PAPI_BASE_URL=$ApiBaseUrl", "-PWS_BASE_URL=$WsBaseUrl")
+$gradleArgs = @(
+    $taskName,
+    "-PAPI_BASE_URL=$ApiBaseUrl",
+    "-PWS_BASE_URL=$WsBaseUrl",
+    "-PVERSION_NAME=$VersionName",
+    "-PVERSION_CODE=$VersionCode"
+)
 
 $process = Start-Process -FilePath $gradleWrapper -WorkingDirectory $phoneDir -ArgumentList $gradleArgs -NoNewWindow -PassThru -Wait
 if ($process.ExitCode -ne 0) {

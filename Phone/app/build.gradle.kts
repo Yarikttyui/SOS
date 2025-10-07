@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -10,13 +9,15 @@ android {
 
     val apiBaseUrl = (project.findProperty("API_BASE_URL") as String?) ?: "http://10.0.2.2:8000"
     val wsBaseUrl = (project.findProperty("WS_BASE_URL") as String?) ?: "ws://10.0.2.2:8000"
+    val versionNameProp = (project.findProperty("VERSION_NAME") as String?) ?: "1.0"
+    val versionCodeProp = (project.findProperty("VERSION_CODE") as String?)?.toIntOrNull() ?: 1
 
     defaultConfig {
         applicationId = "com.example.myapplication"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+    versionCode = versionCodeProp
+    versionName = versionNameProp
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -40,8 +41,12 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.11"
+    }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -55,6 +60,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.foundation:foundation-layout")
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
     
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")

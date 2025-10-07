@@ -5,16 +5,21 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -92,7 +97,7 @@ private data class StatusBadgeData(
 
 private val CompletedStatuses = setOf("completed", "cancelled")
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun RescuerDashboard(
     user: User,
@@ -408,16 +413,32 @@ private fun RescuerHeroCard(
                 }
             }
 
-            Row(
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                maxItemsInEachRow = 3
             ) {
-                HeroStatPill(label = "Мои", value = myCount)
+                HeroStatPill(
+                    modifier = Modifier.widthIn(min = 140.dp, max = 220.dp),
+                    label = "Мои",
+                    value = myCount
+                )
                 if (user.team_id != null) {
-                    HeroStatPill(label = "Команда", value = teamCount)
+                    HeroStatPill(
+                        modifier = Modifier.widthIn(min = 140.dp, max = 220.dp),
+                        label = "Команда",
+                        value = teamCount
+                    )
                 }
                 if (user.is_team_leader) {
-                    HeroStatPill(label = "Доступно", value = availableCount, accent = LuminousAmber)
+                    HeroStatPill(
+                        modifier = Modifier.widthIn(min = 140.dp, max = 220.dp),
+                        label = "Доступно",
+                        value = availableCount,
+                        accent = LuminousAmber
+                    )
                 }
             }
 
@@ -431,10 +452,14 @@ private fun RescuerHeroCard(
 }
 
 @Composable
-private fun HeroStatPill(label: String, value: Int, accent: Color = SkyPulse) {
+private fun HeroStatPill(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: Int,
+    accent: Color = SkyPulse
+) {
     Column(
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .clip(RoundedCornerShape(28.dp))
             .background(Color.White.copy(alpha = 0.08f))
             .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(28.dp))
@@ -458,14 +483,17 @@ private fun HeroStatPill(label: String, value: Int, accent: Color = SkyPulse) {
 
 @Composable
 private fun MetricsRow(stats: List<QuickStat>) {
-    Row(
+    @OptIn(ExperimentalLayoutApi::class)
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        maxItemsInEachRow = 3
     ) {
         stats.forEach { stat ->
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .widthIn(min = 140.dp, max = 220.dp)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Brush.linearGradient(stat.gradient))
                     .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(24.dp))
@@ -546,7 +574,8 @@ private fun SegmentedButton(text: String, selected: Boolean, onClick: () -> Unit
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
                 .background(
-                    if (selected) Brush.linearGradient(listOf(AuroraRose, AuroraViolet)) else Color.Transparent
+                    if (selected) Brush.linearGradient(listOf(AuroraRose, AuroraViolet))
+                    else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
                 )
                 .padding(horizontal = 18.dp, vertical = 12.dp),
             contentAlignment = Alignment.Center

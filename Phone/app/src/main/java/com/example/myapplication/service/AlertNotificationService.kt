@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.myapplication.MainActivity
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.RingtoneManager
 import android.net.Uri
 import kotlinx.coroutines.*
@@ -238,11 +239,6 @@ class AlertNotificationService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         
-        val attributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-
         val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setContentTitle("🚨 ЭКСТРЕННЫЙ ВЫЗОВ!")
             .setContentText(title)
@@ -255,7 +251,7 @@ class AlertNotificationService : Service() {
             .setOngoing(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setVibrate(longArrayOf(0, 500, 200, 500, 200, 500))
-            .setSound(alertSoundUri, attributes)
+            .setSound(alertSoundUri, AudioManager.STREAM_ALARM)
             .addAction(
                 android.R.drawable.ic_lock_silent_mode_off,
                 "Остановить сирену",

@@ -15,6 +15,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -596,24 +598,12 @@ private fun PreparednessCard() {
 
 @Composable
 private fun PreparednessItem(text: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(SkyPulseLight)
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = Gray600,
-            modifier = Modifier.weight(1f)
-        )
-    }
+    Text(
+        text = "• $text",
+        style = MaterialTheme.typography.bodySmall,
+        color = Gray600,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -709,6 +699,7 @@ private fun SuccessToast() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateAlertDialog(
     currentType: String,
@@ -797,53 +788,47 @@ private fun CreateAlertDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun FlowChipGroup(
     options: List<QuickAction>,
     selected: String,
     onSelect: (String) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.chunked(3).forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        maxItemsInEachRow = 3
+    ) {
+        options.forEach { action ->
+            val isSelected = action.code == selected
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        if (isSelected) Brush.linearGradient(action.gradient)
+                        else Brush.linearGradient(listOf(Gray100, Gray100))
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (isSelected) Color.Transparent else Gray300,
+                        shape = RoundedCornerShape(18.dp)
+                    )
+                    .clickable { onSelect(action.code) }
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
             ) {
-                row.forEach { action ->
-                    val isSelected = action.code == selected
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(
-                                if (isSelected) Brush.linearGradient(action.gradient) else Gray100
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (isSelected) Color.Transparent else Gray300,
-                                shape = RoundedCornerShape(18.dp)
-                            )
-                            .clickable { onSelect(action.code) }
-                            .padding(horizontal = 12.dp, vertical = 12.dp)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = action.emoji + " " + action.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) Color.White else Gray700
-                            )
-                            Text(
-                                text = action.description,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isSelected) Color.White.copy(alpha = 0.85f) else Gray600
-                            )
-                        }
-                    }
-                }
-                if (row.size < 3) {
-                    repeat(3 - row.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = action.emoji + " " + action.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isSelected) Color.White else Gray700
+                    )
+                    Text(
+                        text = action.description,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isSelected) Color.White.copy(alpha = 0.85f) else Gray600
+                    )
                 }
             }
         }
@@ -965,38 +950,4 @@ private fun defaultTitleForType(type: String): String = when (type) {
     "search_rescue" -> "Поисковая операция"
     "ecological" -> "Экологическая тревога"
     else -> "Экстренная ситуация"
-}
-                    .background(color.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            
-            Column {
-                Text(
-                    text = service,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Gray900
-                )
-                Text(
-                    text = "Звонок бесплатный",
-                    fontSize = 11.sp,
-                    color = Gray500
-                )
-            }
-        }
-        
-        Text(
-            text = number,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-    }
 }

@@ -291,9 +291,10 @@ fun RescueApp(
                         scope.launch {
                             acceptAlert(accessToken!!, alertId) { result ->
                                 result.onSuccess {
-                                    // Reload alerts
-                                    loadAlerts(accessToken!!) { loadResult ->
-                                        loadResult.onSuccess { alerts = it }
+                                    scope.launch {
+                                        loadAlerts(accessToken!!) { loadResult ->
+                                            loadResult.onSuccess { alerts = it }
+                                        }
                                     }
                                     Toast.makeText(context, "Вызов принят", Toast.LENGTH_SHORT).show()
                                 }.onFailure {
@@ -306,9 +307,10 @@ fun RescueApp(
                         scope.launch {
                             completeAlert(accessToken!!, alertId) { result ->
                                 result.onSuccess {
-                                    // Reload alerts
-                                    loadAlerts(accessToken!!) { loadResult ->
-                                        loadResult.onSuccess { alerts = it }
+                                    scope.launch {
+                                        loadAlerts(accessToken!!) { loadResult ->
+                                            loadResult.onSuccess { alerts = it }
+                                        }
                                     }
                                     Toast.makeText(context, "Вызов завершен", Toast.LENGTH_SHORT).show()
                                 }.onFailure {
