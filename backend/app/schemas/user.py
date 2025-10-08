@@ -1,7 +1,7 @@
 """
 User schemas
 """
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -20,8 +20,16 @@ class UserCreate(UserBase):
 
 class UserLogin(BaseModel):
     """User login schema"""
-    email: EmailStr
+    email: str = Field(..., min_length=3, max_length=255)
     password: str
+
+    @validator("email")
+    def validate_email(cls, value: str) -> str:
+        """Allow legacy internal emails without strict validation."""
+        normalized = value.strip().lower()
+        if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
+            raise ValueError("Invalid email address")
+        return normalized
 
 
 class UserUpdate(BaseModel):
