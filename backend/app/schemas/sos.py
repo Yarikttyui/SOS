@@ -13,8 +13,8 @@ from app.models.sos_alert import EmergencyType, AlertStatus, AlertPriority
 class SOSAlertBase(BaseModel):
     """Base SOS alert schema"""
     type: EmergencyType
-    latitude: Decimal = Field(..., ge=-90, le=90)
-    longitude: Decimal = Field(..., ge=-180, le=180)
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
     title: Optional[str] = None
     description: Optional[str] = None
 
@@ -48,7 +48,7 @@ class SOSAlertResponse(SOSAlertBase):
     assigned_to_name: Optional[str] = None  # Имя спасателя
     team_name: Optional[str] = None  # Название бригады
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None  # Может быть NULL
     assigned_at: Optional[datetime]
     completed_at: Optional[datetime]
     

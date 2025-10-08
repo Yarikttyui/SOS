@@ -2,10 +2,9 @@
 Rescue Team schemas
 """
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Union, Any
 from datetime import datetime
 from uuid import UUID
-from decimal import Decimal
 
 from app.models.team import TeamStatus, TeamType
 
@@ -20,8 +19,8 @@ class RescueTeamBase(BaseModel):
 
 class RescueTeamCreate(RescueTeamBase):
     """Rescue team creation schema"""
-    base_latitude: Optional[Decimal] = None
-    base_longitude: Optional[Decimal] = None
+    base_latitude: Optional[float] = None
+    base_longitude: Optional[float] = None
     base_address: Optional[str] = None
     capacity: Optional[str] = None
     specialization: Optional[List[str]] = None
@@ -33,10 +32,10 @@ class RescueTeamUpdate(BaseModel):
     """Rescue team update schema"""
     name: Optional[str] = None
     status: Optional[TeamStatus] = None
-    current_latitude: Optional[Decimal] = None
-    current_longitude: Optional[Decimal] = None
-    members: Optional[List[dict]] = None
-    equipment: Optional[List[dict]] = None
+    current_latitude: Optional[float] = None
+    current_longitude: Optional[float] = None
+    members: Optional[List[Any]] = None  # Может быть список строк или dict
+    equipment: Optional[List[Any]] = None  # Может быть список строк или dict
     member_ids: Optional[List[str]] = None  # Update team members
     leader_id: Optional[str] = None  # Update team leader
 
@@ -45,12 +44,12 @@ class RescueTeamResponse(RescueTeamBase):
     """Rescue team response schema"""
     id: UUID
     status: TeamStatus
-    current_latitude: Optional[Decimal]
-    current_longitude: Optional[Decimal]
-    members: Optional[List[dict]]
-    equipment: Optional[List[dict]]
-    base_latitude: Optional[Decimal]
-    base_longitude: Optional[Decimal]
+    current_latitude: Optional[float]
+    current_longitude: Optional[float]
+    members: Optional[List[Any]]  # Может быть список строк или dict
+    equipment: Optional[List[Any]]  # Может быть список строк или dict
+    base_latitude: Optional[float]
+    base_longitude: Optional[float]
     base_address: Optional[str]
     capacity: Optional[str]
     specialization: Optional[List[str]]

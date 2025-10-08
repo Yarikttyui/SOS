@@ -18,6 +18,7 @@ router = APIRouter()
 async def get_users(
     skip: int = 0,
     limit: int = 100,
+    role: str = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -25,6 +26,7 @@ async def get_users(
     Get list of users
     
     Operators, coordinators and admins can access
+    Can filter by role parameter
     """
     if current_user.role not in ["operator", "coordinator", "admin"]:
         raise HTTPException(
@@ -32,7 +34,13 @@ async def get_users(
             detail="Not authorized"
         )
     
-    users = db.query(User).offset(skip).limit(limit).all()
+    query = db.query(User)
+    
+    # Фильтрация по роли, если указана
+    if role:
+        query = query.filter(User.role == role)
+    
+    users = query.offset(skip).limit(limit).all()
     return users
 
 

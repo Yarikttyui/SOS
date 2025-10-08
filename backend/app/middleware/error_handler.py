@@ -39,6 +39,6 @@ async def error_handler_middleware(request: Request, call_next):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "detail": "Internal server error",
-                "error": str(e) if request.app.debug else None
+                "error": str(e)  # Всегда показываем ошибку для отладки
             }
         )

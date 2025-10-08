@@ -132,12 +132,12 @@ async def get_teams(
             "name": team.name,
             "type": team.type,
             "status": team.status,
-            "current_latitude": team.current_latitude,
-            "current_longitude": team.current_longitude,
+            "current_latitude": float(team.current_latitude) if team.current_latitude is not None else None,
+            "current_longitude": float(team.current_longitude) if team.current_longitude is not None else None,
             "members": team.members,
             "equipment": team.equipment,
-            "base_latitude": team.base_latitude,
-            "base_longitude": team.base_longitude,
+            "base_latitude": float(team.base_latitude) if team.base_latitude is not None else None,
+            "base_longitude": float(team.base_longitude) if team.base_longitude is not None else None,
             "base_address": team.base_address,
             "capacity": team.capacity,
             "specialization": team.specialization,
@@ -167,6 +167,8 @@ async def get_team(
     current_user: User = Depends(get_current_user)
 ):
     """Get team by ID"""
+    from decimal import Decimal
+    
     team = db.query(RescueTeam).filter(RescueTeam.id == str(team_id)).first()
     
     if not team:
@@ -180,12 +182,12 @@ async def get_team(
         "name": team.name,
         "type": team.type,
         "status": team.status,
-        "current_latitude": team.current_latitude,
-        "current_longitude": team.current_longitude,
+        "current_latitude": float(team.current_latitude) if isinstance(team.current_latitude, Decimal) and team.current_latitude else team.current_latitude,
+        "current_longitude": float(team.current_longitude) if isinstance(team.current_longitude, Decimal) and team.current_longitude else team.current_longitude,
         "members": team.members,
         "equipment": team.equipment,
-        "base_latitude": team.base_latitude,
-        "base_longitude": team.base_longitude,
+        "base_latitude": float(team.base_latitude) if isinstance(team.base_latitude, Decimal) and team.base_latitude else team.base_latitude,
+        "base_longitude": float(team.base_longitude) if isinstance(team.base_longitude, Decimal) and team.base_longitude else team.base_longitude,
         "base_address": team.base_address,
         "capacity": team.capacity,
         "specialization": team.specialization,

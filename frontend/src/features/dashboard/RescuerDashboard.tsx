@@ -207,6 +207,18 @@ export default function RescuerDashboard() {
 
       const alertsResponse = await api.get<SOSAlert[]>('/api/v1/sos/')
       const alerts = alertsResponse.data
+      
+      console.log('=== RESCUER DASHBOARD DEBUG ===')
+      console.log('Total alerts from API:', alerts.length)
+      console.log('User ID:', user.id)
+      console.log('User Team ID:', user.team_id)
+      console.log('All alerts:', alerts.map(a => ({
+        id: a.id,
+        title: a.title,
+        status: a.status,
+        assigned_to: a.assigned_to,
+        team_id: a.team_id
+      })))
 
       if (user.team_id) {
         try {
@@ -235,6 +247,8 @@ export default function RescuerDashboard() {
             alert.status !== 'completed'
         )
       )
+      
+      console.log('My alerts:', alerts.filter(a => a.assigned_to === user.id).map(a => ({ id: a.id, status: a.status, assigned_to: a.assigned_to })))
 
       setAvailableAlerts(
         alerts.filter(
@@ -244,6 +258,15 @@ export default function RescuerDashboard() {
             (!alert.team_id || alert.team_id === user.team_id)
         )
       )
+      
+      console.log('Available alerts filtered:', alerts.filter(
+        (alert) =>
+          alert.status === 'assigned' &&
+          (!alert.assigned_to || alert.assigned_to === user.id) &&
+          (!alert.team_id || alert.team_id === user.team_id)
+      ).map(a => ({ id: a.id, title: a.title, status: a.status, assigned_to: a.assigned_to, team_id: a.team_id })))
+      
+      console.log('=== END DEBUG ===')
     } catch (error) {
       console.error('Failed to fetch alerts:', error)
     } finally {
@@ -260,8 +283,11 @@ export default function RescuerDashboard() {
 
   const handleAcceptAlert = async (alertId: string) => {
     try {
-      await api.patch(`/api/v1/sos/${alertId}`, {})
-      fetchData()
+      const response = await api.patch(`/api/v1/sos/${alertId}`, {})
+      console.log('Alert accepted:', response.data)
+      // Небольшая задержка для синхронизации с БД
+      await new Promise(resolve => setTimeout(resolve, 500))
+      await fetchData()
     } catch (error) {
       console.error('Failed to accept alert:', error)
     }

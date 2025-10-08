@@ -31,18 +31,20 @@ router = APIRouter()
 
 def enrich_alert_with_names(alert: SOSAlert, db: Session) -> dict:
     """Добавляет имена спасателя и бригады к объекту алерта"""
+    from decimal import Decimal
+    
     alert_dict = {
         "id": alert.id,
         "user_id": alert.user_id,
         "type": alert.type,
         "status": alert.status,
         "priority": alert.priority,
-        "latitude": alert.latitude,
-        "longitude": alert.longitude,
+        "latitude": float(alert.latitude) if isinstance(alert.latitude, Decimal) else alert.latitude,
+        "longitude": float(alert.longitude) if isinstance(alert.longitude, Decimal) else alert.longitude,
         "address": alert.address,
         "title": alert.title,
         "description": alert.description,
-        "media_urls": alert.media_urls,
+        "media_urls": alert.media_urls or [],
         "ai_analysis": alert.ai_analysis,
         "assigned_to": alert.assigned_to,
         "team_id": alert.team_id,
@@ -137,14 +139,17 @@ async def get_alerts(
     elif current_user.role == "rescuer":
         filters = []
         
+        # 1. Вызовы, назначенные на команду спасателя
         if current_user.team_id:
             filters.append(SOSAlert.team_id == current_user.team_id)
         
+        # 2. Вызовы, назначенные лично на спасателя без команды
         filters.append(
             (SOSAlert.assigned_to == current_user.id) & 
             (SOSAlert.team_id == None)
         )
         
+        # 3. Доступные вызовы без команды (может принять любой)
         filters.append(
             (SOSAlert.status == AlertStatus.ASSIGNED.value) & 
             (SOSAlert.assigned_to == None) & 
@@ -216,12 +221,15 @@ async def update_alert(
         )
     
     if current_user.role == "rescuer":
+        # Проверка: только лидеры команд могут принимать вызовы
         if not current_user.is_team_leader:
+            print(f"❌ User {current_user.id} ({current_user.email}) is not a team leader")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only team leaders can accept and manage alerts"
             )
         
+        # Принятие нового вызова (assigned -> in_progress)
         if alert.status == AlertStatus.ASSIGNED.value and alert.assigned_to is None:
             if alert.team_id and alert.team_id != current_user.team_id:
                 raise HTTPException(
@@ -229,11 +237,13 @@ async def update_alert(
                     detail="This alert is assigned to another team"
                 )
             
+            print(f"✅ Accepting alert {alert_id} by user {current_user.id} ({current_user.email})")
             alert.status = AlertStatus.IN_PROGRESS.value
             alert.assigned_to = current_user.id
             if not alert.team_id:  # Assign team if not already assigned
                 alert.team_id = current_user.team_id
             alert.assigned_at = datetime.utcnow()
+            print(f"✅ Alert updated: status={alert.status}, assigned_to={alert.assigned_to}, team_id={alert.team_id}")
         elif alert.assigned_to != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

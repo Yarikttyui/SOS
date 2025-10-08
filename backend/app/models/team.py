@@ -27,6 +27,7 @@ class TeamType(str, enum.Enum):
     SEARCH_RESCUE = "search_rescue"
     ECOLOGICAL = "ecological"
     MULTI_PURPOSE = "multi_purpose"
+    GENERAL = "general"  # Общий тип команды
 
 
 class RescueTeam(Base):
