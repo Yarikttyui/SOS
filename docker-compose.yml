@@ -1,25 +1,33 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: rescue_postgres
+  # MySQL Database
+  mysql:
+    image: mysql:8.4
+    container_name: rescue_mysql
     environment:
-      POSTGRES_USER: rescue_user
-      POSTGRES_PASSWORD: rescue_pass_2024_secure
-      POSTGRES_DB: rescue_db
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ru_RU.UTF-8"
+      MYSQL_ROOT_PASSWORD: rescue_root_pass_2024_secure
+      MYSQL_DATABASE: rescue_db
+      MYSQL_USER: rescue_user
+      MYSQL_PASSWORD: rescue_pass_2024_secure
+    command:
+      [
+        "mysqld",
+        "--default-authentication-plugin=mysql_native_password",
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+        "--max_connections=300",
+        "--innodb_buffer_pool_size=256M"
+      ]
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rescue_user -d rescue_db"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prescue_root_pass_2024_secure"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 7
     networks:
       - rescue_network
     restart: unless-stopped
@@ -51,7 +59,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DATABASE_URL=postgresql://rescue_user:rescue_pass_2024_secure@postgres:5432/rescue_db
+      - DATABASE_URL=mysql+pymysql://rescue_user:rescue_pass_2024_secure@mysql:3306/rescue_db?charset=utf8mb4
       - REDIS_URL=redis://:rescue_redis_pass@redis:6379/0
     ports:
       - "8000:8000"
@@ -59,7 +67,7 @@ services:
       - ./backend:/app
       - backend_uploads:/app/uploads
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -77,12 +85,12 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DATABASE_URL=postgresql://rescue_user:rescue_pass_2024_secure@postgres:5432/rescue_db
+      - DATABASE_URL=mysql+pymysql://rescue_user:rescue_pass_2024_secure@mysql:3306/rescue_db?charset=utf8mb4
       - REDIS_URL=redis://:rescue_redis_pass@redis:6379/0
     volumes:
       - ./backend:/app
     depends_on:
-      - postgres
+      - mysql
       - redis
     networks:
       - rescue_network
@@ -129,7 +137,7 @@ services:
   #   restart: unless-stopped
 
 volumes:
-  postgres_data:
+  mysql_data:
     driver: local
   redis_data:
     driver: local
