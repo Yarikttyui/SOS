@@ -20,6 +20,7 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <application
+        android:name="com.bashbosh.rescue.app.RescueApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -27,27 +28,30 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MyApplication"
+        android:theme="@style/Theme.Rescue"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name="com.bashbosh.rescue.ui.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.MyApplication"
+            android:theme="@style/Theme.Rescue"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
-        <!-- Foreground Service для фоновых уведомлений -->
+
         <service
-            android:name=".service.AlertNotificationService"
+            android:name="com.bashbosh.rescue.notifications.SirenService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="location" />
+            android:foregroundServiceType="mediaPlayback" />
+
+        <receiver
+            android:name="com.bashbosh.rescue.notifications.AlertActionsReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

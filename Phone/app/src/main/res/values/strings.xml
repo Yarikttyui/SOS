@@ -1,3 +1,55 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">Rescue SOS</string>
+    <string name="login_title">Единый центр спасения</string>
+    <string name="login_subtitle">Войдите или зарегистрируйтесь, чтобы получать тревоги в режиме реального времени</string>
+    <string name="login_email_label">E-mail</string>
+    <string name="login_password_label">Пароль</string>
+    <string name="login_fullname_label">ФИО</string>
+    <string name="login_phone_label">Телефон</string>
+    <string name="login_register_button">Создать аккаунт</string>
+    <string name="login_button">Войти</string>
+    <string name="login_switch_to_login">У меня уже есть аккаунт</string>
+    <string name="login_switch_to_register">Зарегистрироваться</string>
+
+    <string name="dashboard_title">Центр управления</string>
+    <string name="dashboard_logout">Выйти</string>
+    <string name="dashboard_filter_all">Все</string>
+    <string name="dashboard_retry">Повторить</string>
+    <string name="dashboard_empty">Активных вызовов нет</string>
+
+    <string name="alert_card_title_fallback">Сигнал %1$s</string>
+    <string name="alert_card_description_fallback">Описание недоступно</string>
+    <string name="alert_card_status">Статус: %1$s</string>
+    <string name="alert_card_address">Адрес: %1$s</string>
+    <string name="alert_card_time">Создано: %1$s</string>
+    <string name="alert_card_accept">Принять</string>
+    <string name="alert_card_complete">Завершить</string>
+
+    <string name="complete_alert_title">Отчёт о завершении</string>
+    <string name="complete_alert_message">Опишите выполненные действия</string>
+    <string name="complete_alert_placeholder">Например: Проведена эвакуация двух пострадавших…</string>
+    <string name="complete_alert_confirm">Завершить</string>
+    <string name="complete_alert_cancel">Отмена</string>
+
+    <string name="alert_detail_back">Назад</string>
+    <string name="alert_detail_status">Статус: %1$s</string>
+    <string name="alert_detail_description">Описание: %1$s</string>
+    <string name="alert_detail_address">Адрес: %1$s</string>
+    <string name="alert_detail_priority">Приоритет: %1$d</string>
+    <string name="alert_detail_created_at">Создано: %1$s</string>
+
+    <string name="notifications_title">Уведомления</string>
+    <string name="notifications_retry">Повторить</string>
+    <string name="notifications_empty">Новых уведомлений нет</string>
+    <string name="notifications_mark_all">Отметить все как прочитанные</string>
+    <string name="notifications_mark_read">Отметить как прочитанное</string>
+
+    <string name="alert_notification_description_fallback">Открыть карточку вызова</string>
+    <string name="alert_notification_title">Критический вызов: %1$s</string>
+    <string name="alert_notification_stop_action">Остановить сирену</string>
+    <string name="alert_status_update_title">Статус вызова: %1$s</string>
+    <string name="alert_status_message_accepted">Вызов принят спасателем</string>
+    <string name="alert_status_message_completed">Вызов завершён</string>
+    <string name="siren_service_title">Сирена тревоги</string>
+    <string name="siren_service_description">Нажмите, чтобы остановить сирену</string>
 </resources>

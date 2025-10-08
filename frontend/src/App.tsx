@@ -11,6 +11,7 @@ import OperatorDashboard from './features/dashboard/OperatorDashboard'
 import CoordinatorDashboard from './features/dashboard/CoordinatorDashboard'
 import AdminDashboard from './features/dashboard/AdminDashboard'
 import SOSStandalonePage from './features/sos/SOSStandalonePage'
+import DownloadPage from './features/download/DownloadPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, fetchCurrentUser } = useAuthStore()
@@ -54,6 +55,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/download" element={<DownloadPage />} />
         
         <Route
           path="/"

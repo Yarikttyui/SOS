@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { AlertCircle, Shield, Zap, Users, Sparkles, Clock, CheckCircle2, Loader2 } from 'lucide-react'
+import { DownloadAppButton } from '../../components/DownloadAppButton'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -65,6 +66,15 @@ export default function LoginPage() {
                     Отправляйте SOS, отслеживайте статус спасателей и получайте рекомендации ИИ в едином интерфейсе.
                     Всё защищено, быстро и доступно 24/7.
                   </p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <DownloadAppButton />
+                    <Link
+                      to="/download"
+                      className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/80 transition hover:bg-white/15 hover:text-white"
+                    >
+                      Инструкция по установке
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
