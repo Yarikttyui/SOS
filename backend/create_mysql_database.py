@@ -1,20 +1,107 @@
+"""Создание или проверка базы Rescue System в MySQL.
+
+Скрипт может выполняться как на локальной машине, так и внутри docker-контейнера.
+Параметры подключения берутся из переменных окружения, чтобы не привязываться к
+`127.0.0.1`. При отсутствии переменных используются безопасные значения по умолчанию.
 """
-Script to create MySQL database and tables for Rescue System
-Run this once before starting the application
-"""
+
+from __future__ import annotations
+
+import os
+from urllib.parse import urlparse
+
 import mysql.connector
 from mysql.connector import Error
 
-DB_HOST = '127.0.0.1'
-DB_USER = 'root'
-DB_PASSWORD = '55646504'
-DB_NAME = 'rescue_db'
+
+def _env(name: str, default: str | None = None) -> str | None:
+    """Получить значение переменной окружения c fallback."""
+
+    value = os.getenv(name)
+    if value is not None and value.strip() != "":
+        return value.strip()
+    return default
+
+
+def _from_database_url() -> dict[str, str | int] | None:
+    """Распарсить DATABASE_URL (если задан) для получения хоста/порта/базы."""
+
+    url = _env("DATABASE_URL")
+    if not url:
+        return None
+
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return None
+
+    host = parsed.hostname or "mysql"
+    port = parsed.port or 3306
+    database = (parsed.path or "/").lstrip("/") or "rescue_db"
+    user = parsed.username or "rescue_user"
+    password = parsed.password or ""
+
+    return {
+        "host": host,
+        "port": port,
+        "user": user,
+        "password": password,
+        "database": database,
+    }
+
+
+def _resolve_connection_params() -> tuple[str, int, str, str, str]:
+    """Определить параметры подключения, разрешая приоритеты."""
+
+    # 1. Явные переменные для скрипта (можно передать при запуске).
+    host = _env("MYSQL_SETUP_HOST")
+    port = _env("MYSQL_SETUP_PORT")
+    user = _env("MYSQL_SETUP_USER")
+    password = _env("MYSQL_SETUP_PASSWORD")
+    database = _env("MYSQL_SETUP_DB")
+
+    # 2. Данные из переменных контейнера MySQL (если прокинуты).
+    if host is None:
+        host = _env("MYSQL_HOST")
+    if port is None:
+        port = _env("MYSQL_PORT")
+    if user is None:
+        user = _env("MYSQL_ROOT_USER") or _env("MYSQL_USER")
+    if password is None:
+        password = _env("MYSQL_ROOT_PASSWORD") or _env("MYSQL_PASSWORD")
+    if database is None:
+        database = _env("MYSQL_DATABASE")
+
+    # 3. Попробовать распарсить DATABASE_URL (например, из backend/.env).
+    if not host or not user:
+        parsed = _from_database_url()
+        if parsed:
+            host = host or parsed["host"]
+            port = port or str(parsed["port"])
+            database = database or parsed["database"]
+            # Для создания базы лучше использовать root, но если он не указан,
+            # используем пользователя из URL.
+            user = user or parsed["user"]
+            password = password or parsed["password"]
+
+    # 4. Значения по умолчанию
+    host = host or "mysql"
+    port = int(port) if port else 3306
+    user = user or "root"
+    password = password or "rescue_root_pass_2024_secure"
+    database = database or "rescue_db"
+
+    return host, port, user, password, database
+
+
+DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME = _resolve_connection_params()
 
 def create_database():
     """Create the rescue_db database if it doesn't exist"""
     try:
         connection = mysql.connector.connect(
             host=DB_HOST,
+            port=DB_PORT,
             user=DB_USER,
             password=DB_PASSWORD
         )
@@ -40,6 +127,7 @@ def create_tables():
     try:
         connection = mysql.connector.connect(
             host=DB_HOST,
+            port=DB_PORT,
             user=DB_USER,
             password=DB_PASSWORD,
             database=DB_NAME
@@ -156,6 +244,7 @@ def main():
     print("MySQL Database Setup for Rescue System")
     print("="*70)
     print(f"Host: {DB_HOST}")
+    print(f"Port: {DB_PORT}")
     print(f"User: {DB_USER}")
     print(f"Database: {DB_NAME}")
     print("="*70)
