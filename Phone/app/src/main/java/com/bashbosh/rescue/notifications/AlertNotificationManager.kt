@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.bashbosh.rescue.R
 import com.bashbosh.rescue.domain.model.Alert
 import com.bashbosh.rescue.ui.MainActivity
@@ -14,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 
 class AlertNotificationManager(private val context: Context) {
 
@@ -108,8 +108,9 @@ class AlertNotificationManager(private val context: Context) {
         const val SILENT_CHANNEL_ID = "rescue_silent_channel"
         private const val STATUS_OFFSET = 10_000
 
-        fun ensureChannels(context: Context) {
-            ContextCompat.getSystemService(context, NotificationManagerCompat::class.java)
+        private fun buildNotificationId(alertId: String, iteration: Int): Int {
+            val base = alertId.hashCode().absoluteValue % 10000
+            return (base * 10) + iteration.coerceAtLeast(0)
         }
     }
 }

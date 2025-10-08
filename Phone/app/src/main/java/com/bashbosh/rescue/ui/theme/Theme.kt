@@ -13,33 +13,33 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme: ColorScheme = darkColorScheme(
-    primary = PrimaryBlue,
+    primary = PrimaryRose,
     onPrimary = TextOnPrimary,
-    secondary = SecondaryBlue,
+    secondary = SecondaryIndigo,
     onSecondary = TextOnPrimary,
-    tertiary = AccentTeal,
-    background = Color(0xFF0F172A),
-    onBackground = TextOnPrimary,
-    surface = Color(0xFF16213A),
-    onSurface = Color(0xFFECEFF4)
+    tertiary = AccentMagenta,
+    background = DarkSlate,
+    onBackground = Color(0xFFE2E8F0),
+    surface = Color(0xFF111B2E),
+    onSurface = Color(0xFFF8FAFC)
 )
 
 private val LightColorScheme: ColorScheme = lightColorScheme(
-    primary = PrimaryBlue,
+    primary = PrimaryRose,
     onPrimary = TextOnPrimary,
-    secondary = SecondaryBlue,
+    secondary = SecondaryIndigo,
     onSecondary = TextOnPrimary,
-    tertiary = AccentTeal,
+    tertiary = AccentMagenta,
     background = SurfaceLight,
-    onBackground = Color(0xFF0B172F),
+    onBackground = Color(0xFF0F172A),
     surface = Color.White,
-    onSurface = Color(0xFF0B172F)
+    onSurface = Color(0xFF0F172A)
 )
 
 @Composable
 fun RescueTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

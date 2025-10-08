@@ -1,21 +1,18 @@
 package com.bashbosh.rescue.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +30,11 @@ import com.bashbosh.rescue.R
 import com.bashbosh.rescue.domain.model.Alert
 import com.bashbosh.rescue.ui.screens.components.CompleteAlertDialog
 import com.bashbosh.rescue.ui.viewmodel.AlertDetailState
+import com.bashbosh.rescue.ui.components.GlassCard
+import com.bashbosh.rescue.ui.components.PrimaryGradientButton
+import com.bashbosh.rescue.ui.components.RescueBackground
+import com.bashbosh.rescue.ui.theme.PrimaryRose
+import com.bashbosh.rescue.ui.theme.SecondaryIndigo
 
 @Composable
 fun AlertDetailScreen(
@@ -42,34 +43,42 @@ fun AlertDetailScreen(
     onAccept: () -> Unit,
     onComplete: (String?) -> Unit
 ) {
-    Surface(color = MaterialTheme.colorScheme.background) {
+    RescueBackground(modifier = Modifier.fillMaxSize()) {
         when (state) {
-            is AlertDetailState.Loading -> LoadingState()
-            is AlertDetailState.Error -> ErrorState(state.message, onBack)
+            is AlertDetailState.Loading -> LoadingState(modifier = Modifier.fillMaxSize())
+            is AlertDetailState.Error -> ErrorState(state.message, onBack, modifier = Modifier.fillMaxWidth())
             is AlertDetailState.Loaded -> LoadedState(state.alert, onBack, onAccept, onComplete)
         }
     }
 }
 
 @Composable
-private fun LoadingState() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+private fun LoadingState(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = SecondaryIndigo)
     }
 }
 
 @Composable
-private fun ErrorState(message: String, onBack: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = message, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
-        Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
-            Text(text = stringResource(id = R.string.alert_detail_back))
+private fun ErrorState(
+    message: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(text = message, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+            PrimaryGradientButton(
+                text = stringResource(id = R.string.alert_detail_back),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onBack
+            )
         }
     }
 }
@@ -81,55 +90,81 @@ private fun LoadedState(
     onAccept: () -> Unit,
     onComplete: (String?) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF0A2146))
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(painter = painterResource(id = R.drawable.ic_back), contentDescription = null, tint = Color.White)
+    var showDialog by remember { mutableStateOf(false) }
+
+    if (showDialog) {
+        CompleteAlertDialog(
+            onDismiss = { showDialog = false },
+            onConfirm = {
+                onComplete(it)
+                showDialog = false
             }
-            Text(
-                text = alert.title ?: stringResource(id = R.string.alert_card_title_fallback, alert.type.raw.uppercase()),
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
+        )
+    }
 
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = stringResource(id = R.string.alert_detail_status, alert.status.raw.uppercase()), fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = stringResource(id = R.string.alert_detail_description, alert.description ?: stringResource(id = R.string.alert_card_description_fallback)))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = stringResource(id = R.string.alert_detail_address, alert.address ?: "—"))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = stringResource(id = R.string.alert_detail_priority, alert.priority))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = stringResource(id = R.string.alert_detail_created_at, alert.formattedCreatedAt ?: "—"))
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (alert.isAvailable) {
-                Button(onClick = onAccept, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = stringResource(id = R.string.alert_card_accept))
-                }
-            }
-            if (alert.isInProgress) {
-                var showDialog by remember { mutableStateOf(false) }
-                if (showDialog) {
-                    CompleteAlertDialog(
-                        onDismiss = { showDialog = false },
-                        onConfirm = {
-                            onComplete(it)
-                            showDialog = false
-                        }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_back),
+                        contentDescription = null,
+                        tint = SecondaryIndigo
                     )
                 }
-                Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = alert.title ?: stringResource(id = R.string.alert_card_title_fallback, alert.type.raw.uppercase()),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.alert_detail_status, alert.status.raw.uppercase()),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = SecondaryIndigo,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(text = stringResource(id = R.string.alert_detail_description, alert.description ?: stringResource(id = R.string.alert_card_description_fallback)))
+                Text(text = stringResource(id = R.string.alert_detail_address, alert.address ?: "—"))
+                Text(text = stringResource(id = R.string.alert_detail_priority, alert.priority))
+                Text(text = stringResource(id = R.string.alert_detail_created_at, alert.formattedCreatedAt ?: "—"))
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            if (alert.isAvailable) {
+                PrimaryGradientButton(
+                    text = stringResource(id = R.string.alert_card_accept),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onAccept
+                )
+            }
+            if (alert.isInProgress) {
+                OutlinedButton(
+                    onClick = { showDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryRose)
+                ) {
                     Text(text = stringResource(id = R.string.alert_card_complete))
                 }
             }

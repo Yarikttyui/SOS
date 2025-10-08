@@ -119,7 +119,7 @@ private fun provideOkHttpClient(
 }
 
 @Suppress("TooGenericExceptionCaught")
-private fun runBlockingMaybe(block: suspend () -> String?): String? = try {
+private fun <T> runBlockingMaybe(block: suspend () -> T): T? = try {
     kotlinx.coroutines.runBlocking { block() }
 } catch (e: Exception) {
     null
@@ -160,54 +160,54 @@ private class FallbackApiService(
     private val client: OkHttpClient
 ) : ApiService by primary {
 
-    override suspend fun login(request: LoginRequest): TokenResponseDto = withFallback {
-        primary.login(request)
+    override suspend fun login(request: LoginRequest): TokenResponseDto = withFallback { service ->
+        service.login(request)
     }
 
-    override suspend fun register(request: RegisterRequest): UserDto = withFallback {
-        primary.register(request)
+    override suspend fun register(request: RegisterRequest): UserDto = withFallback { service ->
+        service.register(request)
     }
 
-    override suspend fun refresh(request: RefreshRequest): TokenResponseDto = withFallback {
-        primary.refresh(request)
+    override suspend fun refresh(request: RefreshRequest): TokenResponseDto = withFallback { service ->
+        service.refresh(request)
     }
 
-    override suspend fun getCurrentUser(): UserDto = withFallback {
-        primary.getCurrentUser()
+    override suspend fun getCurrentUser(): UserDto = withFallback { service ->
+        service.getCurrentUser()
     }
 
-    override suspend fun getAlerts(status: String?, type: String?, skip: Int, limit: Int): List<AlertDto> = withFallback {
-        primary.getAlerts(status, type, skip, limit)
+    override suspend fun getAlerts(status: String?, type: String?, skip: Int, limit: Int): List<AlertDto> = withFallback { service ->
+        service.getAlerts(status, type, skip, limit)
     }
 
-    override suspend fun getAlert(alertId: String): AlertDto = withFallback {
-        primary.getAlert(alertId)
+    override suspend fun getAlert(alertId: String): AlertDto = withFallback { service ->
+        service.getAlert(alertId)
     }
 
-    override suspend fun updateAlert(alertId: String, request: AlertUpdateRequest): AlertDto = withFallback {
-        primary.updateAlert(alertId, request)
+    override suspend fun updateAlert(alertId: String, request: AlertUpdateRequest): AlertDto = withFallback { service ->
+        service.updateAlert(alertId, request)
     }
 
-    override suspend fun getNotifications(unreadOnly: Boolean, skip: Int, limit: Int): List<NotificationDto> = withFallback {
-        primary.getNotifications(unreadOnly, skip, limit)
+    override suspend fun getNotifications(unreadOnly: Boolean, skip: Int, limit: Int): List<NotificationDto> = withFallback { service ->
+        service.getNotifications(unreadOnly, skip, limit)
     }
 
-    override suspend fun markNotification(id: String, request: NotificationUpdateRequest): NotificationDto = withFallback {
-        primary.markNotification(id, request)
+    override suspend fun markNotification(id: String, request: NotificationUpdateRequest): NotificationDto = withFallback { service ->
+        service.markNotification(id, request)
     }
 
-    override suspend fun markAllRead(): Map<String, String> = withFallback {
-        primary.markAllRead()
+    override suspend fun markAllRead(): Map<String, String> = withFallback { service ->
+        service.markAllRead()
     }
 
-    private suspend fun <T> withFallback(block: suspend () -> T): T {
+    private suspend fun <T> withFallback(block: suspend (ApiService) -> T): T {
         return try {
-            block()
+            block(primary)
         } catch (io: IOException) {
             if (fallbackBaseUrl.isBlank()) throw io
             val fallbackRetrofit = provideRetrofit(client, gson, fallbackBaseUrl)
             val fallbackService = fallbackRetrofit.create(ApiService::class.java)
-            fallbackService.block()
+            block(fallbackService)
         }
     }
 }

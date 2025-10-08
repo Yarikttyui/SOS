@@ -2,9 +2,10 @@ package com.bashbosh.rescue.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val PrimaryBlue = Color(0xFF0A2146)
-val SecondaryBlue = Color(0xFF133B8A)
-val AccentTeal = Color(0xFF0ABDC6)
-val AccentOrange = Color(0xFFFFB74D)
-val SurfaceLight = Color(0xFFF5F7FB)
+val PrimaryRose = Color(0xFFEF4444)
+val SecondaryIndigo = Color(0xFF2563EB)
+val AccentMagenta = Color(0xFF8B5CF6)
+val AccentSunrise = Color(0xFFF97316)
+val SurfaceLight = Color(0xFFF8FAFC)
+val DarkSlate = Color(0xFF0B1220)
 val TextOnPrimary = Color(0xFFFFFFFF)

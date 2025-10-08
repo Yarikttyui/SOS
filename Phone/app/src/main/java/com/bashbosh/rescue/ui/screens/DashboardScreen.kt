@@ -1,10 +1,10 @@
 package com.bashbosh.rescue.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,14 +16,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,6 +39,11 @@ import com.bashbosh.rescue.domain.model.UserRole
 import com.bashbosh.rescue.domain.model.UserSession
 import com.bashbosh.rescue.ui.screens.components.CompleteAlertDialog
 import com.bashbosh.rescue.ui.viewmodel.DashboardUiState
+import com.bashbosh.rescue.ui.components.GlassCard
+import com.bashbosh.rescue.ui.components.PrimaryGradientButton
+import com.bashbosh.rescue.ui.components.RescueBackground
+import com.bashbosh.rescue.ui.theme.PrimaryRose
+import com.bashbosh.rescue.ui.theme.SecondaryIndigo
 
 @Composable
 fun DashboardScreen(
@@ -56,21 +56,43 @@ fun DashboardScreen(
     onCompleteAlert: (String, String?) -> Unit,
     onOpenNotifications: () -> Unit
 ) {
-    Surface(color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            DashboardHeader(session, onLogout, onOpenNotifications)
+    RescueBackground(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            DashboardHeader(
+                session = session,
+                onLogout = onLogout,
+                onOpenNotifications = onOpenNotifications
+            )
             AlertFilters(onFilterSelected = onRefresh)
-            when {
-                state.isLoading -> LoadingView()
-                state.error != null -> ErrorView(state.error, onRefresh)
-                state.alerts.isEmpty() -> EmptyView()
-                else -> AlertsList(
-                    alerts = state.alerts,
-                    session = session,
-                    onSelectAlert = onSelectAlert,
-                    onAcceptAlert = onAcceptAlert,
-                    onCompleteAlert = onCompleteAlert
-                )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                when {
+                    state.isLoading -> LoadingView(modifier = Modifier.fillMaxSize())
+                    state.error != null -> ErrorView(
+                        message = state.error,
+                        onRetry = onRefresh,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    state.alerts.isEmpty() -> EmptyView(modifier = Modifier.fillMaxWidth())
+                    else -> AlertsList(
+                        alerts = state.alerts,
+                        session = session,
+                        onSelectAlert = onSelectAlert,
+                        onAcceptAlert = onAcceptAlert,
+                        onCompleteAlert = onCompleteAlert,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
@@ -80,87 +102,130 @@ fun DashboardScreen(
 private fun DashboardHeader(
     session: UserSession,
     onLogout: () -> Unit,
-    onOpenNotifications: () -> Unit
+    onOpenNotifications: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF0A2146))
-            .padding(16.dp)
+    GlassCard(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = stringResource(id = R.string.dashboard_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = session.user?.fullName ?: session.user?.email ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Outlined.Notifications,
+                    contentDescription = null,
+                    tint = SecondaryIndigo,
+                    modifier = Modifier
+                        .clickable(onClick = onOpenNotifications)
+                        .padding(8.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            TextButton(
+                onClick = onLogout,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.dashboard_logout),
+                    color = PrimaryRose
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlertFilters(
+    modifier: Modifier = Modifier,
+    onFilterSelected: (AlertStatus?) -> Unit
+) {
+    val filters = listOf(null, AlertStatus.PENDING, AlertStatus.ASSIGNED, AlertStatus.IN_PROGRESS)
+    GlassCard(
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column {
-                Text(
-                    text = stringResource(id = R.string.dashboard_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White
-                )
-                Text(
-                    text = session.user?.fullName ?: session.user?.email ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.7f)
+            filters.forEach { status ->
+                AssistChip(
+                    onClick = { onFilterSelected(status) },
+                    label = {
+                        Text(
+                            text = status?.raw?.uppercase()
+                                ?: stringResource(id = R.string.dashboard_filter_all)
+                        )
+                    }
                 )
             }
-            Icon(
-                imageVector = Icons.Outlined.Notifications,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier
-                    .clickable(onClick = onOpenNotifications)
-                    .padding(8.dp)
-            )
-        }
-        TextButton(onClick = onLogout) {
-            Text(text = stringResource(id = R.string.dashboard_logout), color = Color.White)
         }
     }
 }
 
 @Composable
-private fun AlertFilters(onFilterSelected: (AlertStatus?) -> Unit) {
-    val filters = listOf(null, AlertStatus.PENDING, AlertStatus.ASSIGNED, AlertStatus.IN_PROGRESS)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        filters.forEach { status ->
-            AssistChip(
-                onClick = { onFilterSelected(status) },
-                label = { Text(text = status?.raw?.uppercase() ?: stringResource(id = R.string.dashboard_filter_all)) }
-            )
-        }
+private fun LoadingView(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = SecondaryIndigo)
     }
 }
 
 @Composable
-private fun LoadingView() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun ErrorView(message: String, onRetry: (AlertStatus?) -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun ErrorView(
+    message: String,
+    onRetry: (AlertStatus?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text(text = message, style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = { onRetry(null) }, modifier = Modifier.padding(top = 8.dp)) {
-                Text(text = stringResource(id = R.string.dashboard_retry))
-            }
+            PrimaryGradientButton(
+                text = stringResource(id = R.string.dashboard_retry),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onRetry(null) }
+            )
         }
     }
 }
 
 @Composable
-private fun EmptyView() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = stringResource(id = R.string.dashboard_empty))
+private fun EmptyView(modifier: Modifier = Modifier) {
+    GlassCard(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(text = stringResource(id = R.string.dashboard_empty), style = MaterialTheme.typography.bodyLarge)
+        }
     }
 }
 
@@ -170,9 +235,14 @@ private fun AlertsList(
     session: UserSession,
     onSelectAlert: (String) -> Unit,
     onAcceptAlert: (String) -> Unit,
-    onCompleteAlert: (String, String?) -> Unit
+    onCompleteAlert: (String, String?) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         items(alerts) { alert ->
             AlertCard(
                 alert = alert,
@@ -181,7 +251,6 @@ private fun AlertsList(
                 onAccept = { onAcceptAlert(alert.id) },
                 onComplete = { report -> onCompleteAlert(alert.id, report) }
             )
-            Divider()
         }
     }
 }
@@ -192,7 +261,8 @@ private fun AlertCard(
     isRescuer: Boolean,
     onSelect: () -> Unit,
     onAccept: () -> Unit,
-    onComplete: (String?) -> Unit
+    onComplete: (String?) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var showCompleteDialog by remember { mutableStateOf(false) }
 
@@ -203,17 +273,20 @@ private fun AlertCard(
                 onComplete(it)
                 showCompleteDialog = false
             }
-    )
+        )
     }
 
-    Card(
-        modifier = Modifier
+    GlassCard(
+        modifier = modifier
             .fillMaxWidth()
-            .padding(12.dp)
-            .clickable(onClick = onSelect),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onSelect)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Text(
                 text = alert.title ?: stringResource(id = R.string.alert_card_title_fallback, alert.type.raw.uppercase()),
                 style = MaterialTheme.typography.titleMedium,
@@ -222,7 +295,11 @@ private fun AlertCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = alert.description ?: stringResource(id = R.string.alert_card_description_fallback))
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = stringResource(id = R.string.alert_card_status, alert.status.raw.uppercase()))
+            Text(
+                text = stringResource(id = R.string.alert_card_status, alert.status.raw.uppercase()),
+                color = SecondaryIndigo,
+                style = MaterialTheme.typography.labelLarge
+            )
             alert.address?.let {
                 Text(text = stringResource(id = R.string.alert_card_address, it))
             }
@@ -238,12 +315,17 @@ private fun AlertCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (alert.isAvailable) {
-                        Button(onClick = onAccept, modifier = Modifier.weight(1f)) {
-                            Text(text = stringResource(id = R.string.alert_card_accept))
-                        }
+                        PrimaryGradientButton(
+                            text = stringResource(id = R.string.alert_card_accept),
+                            modifier = Modifier.weight(1f),
+                            onClick = onAccept
+                        )
                     }
                     if (alert.isInProgress) {
-                        Button(onClick = { showCompleteDialog = true }, modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { showCompleteDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(text = stringResource(id = R.string.alert_card_complete))
                         }
                     }
