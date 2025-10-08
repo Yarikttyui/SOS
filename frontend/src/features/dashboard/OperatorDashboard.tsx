@@ -25,6 +25,29 @@ import {
 } from 'lucide-react'
 import type { SOSAlert, DashboardStats } from '../../types'
 
+const DEFAULT_STATS: DashboardStats = {
+  total_alerts: 0,
+  active_alerts: 0,
+  today_alerts: 0,
+  by_status: {
+    pending: 0,
+    assigned: 0,
+    in_progress: 0,
+    completed: 0,
+    cancelled: 0
+  },
+  by_type: {
+    fire: 0,
+    medical: 0,
+    police: 0,
+    water_rescue: 0,
+    mountain_rescue: 0,
+    search_rescue: 0,
+    ecological: 0,
+    general: 0
+  }
+}
+
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-500/15 border border-amber-400/40 text-amber-100',
   assigned: 'bg-sky-500/15 border border-sky-400/40 text-sky-100',
@@ -86,7 +109,8 @@ const EMERGENCY_LABELS: Record<string, string> = {
 export default function OperatorDashboard() {
   const { user, logout } = useAuthStore()
   const [alerts, setAlerts] = useState<SOSAlert[]>([])
-  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [stats, setStats] = useState<DashboardStats>(DEFAULT_STATS)
+  const [hasStats, setHasStats] = useState(false)
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
@@ -100,12 +124,35 @@ export default function OperatorDashboard() {
       if (filterType !== 'all') params.append('type', filterType)
       
       const alertsResponse = await api.get(`/api/v1/sos/?${params}`)
-      setAlerts(alertsResponse.data)
+      const rawAlerts = alertsResponse.data as unknown
+      let normalizedAlerts: SOSAlert[] = []
+      if (Array.isArray(rawAlerts)) {
+        normalizedAlerts = rawAlerts as SOSAlert[]
+      } else if (rawAlerts && typeof rawAlerts === 'object' && Array.isArray((rawAlerts as any).items)) {
+        normalizedAlerts = (rawAlerts as any).items as SOSAlert[]
+      }
+      setAlerts(normalizedAlerts)
 
       const statsResponse = await api.get('/api/v1/analytics/dashboard')
-      setStats(statsResponse.data)
+      const statsPayload = (statsResponse.data ?? {}) as Partial<DashboardStats>
+      const safeStats: DashboardStats = {
+        ...DEFAULT_STATS,
+        ...statsPayload,
+        by_status: {
+          ...DEFAULT_STATS.by_status,
+          ...(statsPayload.by_status ?? {})
+        },
+        by_type: {
+          ...DEFAULT_STATS.by_type,
+          ...(statsPayload.by_type ?? {})
+        }
+      }
+      setStats(safeStats)
+      setHasStats(true)
     } catch (error) {
       console.error('Failed to fetch data:', error)
+      setHasStats(false)
+      setStats(DEFAULT_STATS)
     } finally {
       setLoading(false)
     }
@@ -194,8 +241,8 @@ export default function OperatorDashboard() {
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
   }
 
-  const statusEntries = stats ? Object.entries(stats.by_status || {}) : []
-  const typeEntries = stats ? Object.entries(stats.by_type || {}) : []
+  const statusEntries = Object.entries(stats.by_status || {})
+  const typeEntries = Object.entries(stats.by_type || {})
   const topTypes = typeEntries
     .filter(([, value]) => value > 0)
     .sort((a, b) => b[1] - a[1])
@@ -254,7 +301,7 @@ export default function OperatorDashboard() {
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-8 lg:px-12">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
           <div className="space-y-8">
-            {stats && (
+            {hasStats && (
               <>
                 <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <article className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 p-6 shadow-xl transition duration-200 hover:-translate-y-1 hover:shadow-2xl">

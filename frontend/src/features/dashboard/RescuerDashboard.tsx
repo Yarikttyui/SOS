@@ -206,7 +206,12 @@ export default function RescuerDashboard() {
       setLoading(true)
 
       const alertsResponse = await api.get<SOSAlert[]>('/api/v1/sos/')
-      const alerts = alertsResponse.data
+      const rawAlerts = alertsResponse.data as unknown
+      const alerts: SOSAlert[] = Array.isArray(rawAlerts)
+        ? (rawAlerts as SOSAlert[])
+        : rawAlerts && typeof rawAlerts === 'object' && Array.isArray((rawAlerts as any).items)
+          ? ((rawAlerts as any).items as SOSAlert[])
+          : []
       
       console.log('=== RESCUER DASHBOARD DEBUG ===')
       console.log('Total alerts from API:', alerts.length)
