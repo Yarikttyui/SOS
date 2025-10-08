@@ -4,11 +4,12 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 from sqlalchemy.orm import Session  # noqa: E402
+from sqlalchemy import func  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
 from app.core.database import Base, SessionLocal, sync_engine  # noqa: E402
@@ -104,7 +105,8 @@ SPECIALIZED_UNITS = [
 
 CORE_ACCOUNTS = (
     {
-        "email": "admin@admin",
+        "email": "admin@rescue-system.ru",
+        "legacy_emails": ["admin@admin"],
         "password": "admin1",
         "role": "admin",
         "full_name": "Системный администратор",
@@ -112,7 +114,8 @@ CORE_ACCOUNTS = (
         "is_shared_account": False,
     },
     {
-        "email": "operator@operator",
+        "email": "operator@rescue-system.ru",
+        "legacy_emails": ["operator@operator"],
         "password": "operator1",
         "role": "operator",
         "full_name": "Дежурный оператор",
@@ -120,7 +123,8 @@ CORE_ACCOUNTS = (
         "is_shared_account": False,
     },
     {
-        "email": "spasat@spasat",
+        "email": "team@rescue-system.ru",
+        "legacy_emails": ["spasat@spasat"],
         "password": "spasat1",
         "role": "rescuer",
         "full_name": "Общий аккаунт спасателей",
@@ -145,6 +149,19 @@ def create_tables() -> None:
     print("✅ Таблицы созданы")
 
 
+def _normalize_email(value: str | None) -> str | None:
+    if not value:
+        return None
+    return value.strip().lower()
+
+
+def _normalize_phone(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+    return cleaned or None
+
+
 def create_core_users(db: Session) -> Dict[str, User]:
     """Создать базовые аккаунты системы."""
     print("\n👤 Создание базовых аккаунтов...")
@@ -153,9 +170,42 @@ def create_core_users(db: Session) -> Dict[str, User]:
 
     for raw_account in CORE_ACCOUNTS:
         account = raw_account.copy()
+        legacy_emails: List[str] = [email for email in account.pop("legacy_emails", []) if email]
         password = account.pop("password")
 
-        existing = db.query(User).filter(User.email == account["email"]).first()
+        normalized_email = _normalize_email(account.get("email"))
+        account["email"] = normalized_email
+        account["phone"] = _normalize_phone(account.get("phone"))
+
+        existing = (
+            db.query(User)
+            .filter(func.lower(User.email) == normalized_email)
+            .first()
+        )
+
+        if not existing and legacy_emails:
+            for legacy in legacy_emails:
+                legacy_norm = _normalize_email(legacy)
+                if not legacy_norm:
+                    continue
+                legacy_user = (
+                    db.query(User)
+                    .filter(func.lower(User.email) == legacy_norm)
+                    .first()
+                )
+                if legacy_user:
+                    print(f"  • Обновляем legacy email {legacy_user.email} → {normalized_email}")
+                    legacy_user.email = normalized_email
+                    if account.get("full_name"):
+                        legacy_user.full_name = account["full_name"]
+                    if account.get("phone"):
+                        legacy_user.phone = account["phone"]
+                    legacy_user.role = account.get("role", legacy_user.role)
+                    legacy_user.is_shared_account = account.get("is_shared_account", legacy_user.is_shared_account)
+                    legacy_user.specialization = account.get("specialization", legacy_user.specialization)
+                    existing = legacy_user
+                    break
+
         if existing:
             print(f"  • Уже существует: {existing.email}")
             created[existing.email] = existing
@@ -182,7 +232,7 @@ def create_specialized_teams(db: Session, users: Dict[str, User]) -> None:
     """Создать преднастроенные специализированные подразделения."""
     print("\n🚒 Подготовка специализированных подразделений...")
 
-    shared_rescuer = users.get("spasat@spasat")
+    shared_rescuer = users.get("team@rescue-system.ru") or users.get("spasat@spasat")
     default_lat = getattr(settings, "DEFAULT_LATITUDE", None)
     default_lon = getattr(settings, "DEFAULT_LONGITUDE", None)
 
@@ -253,9 +303,9 @@ def main() -> None:
 
     print("\n✨ Инициализация завершена")
     print("Новые учетные записи:")
-    print("  • admin@admin       / admin1")
-    print("  • operator@operator / operator1")
-    print("  • spasat@spasat     / spasat1")
+    print("  • admin@rescue-system.ru     / admin1")
+    print("  • operator@rescue-system.ru / operator1")
+    print("  • team@rescue-system.ru     / spasat1")
     print("Граждане регистрируются самостоятельно через приложение.")
     print("=" * 64)
 

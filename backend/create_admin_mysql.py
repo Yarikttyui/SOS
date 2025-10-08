@@ -17,21 +17,24 @@ MYSQL_CONFIG = {
 
 CORE_ACCOUNTS = (
     {
-        "email": "admin@admin",
+        "email": "admin@rescue-system.ru",
+        "legacy_emails": ["admin@admin"],
         "password": "admin1",
         "role": "admin",
         "full_name": "Системный администратор",
         "is_shared_account": False,
     },
     {
-        "email": "operator@operator",
+        "email": "operator@rescue-system.ru",
+        "legacy_emails": ["operator@operator"],
         "password": "operator1",
         "role": "operator",
         "full_name": "Дежурный оператор",
         "is_shared_account": False,
     },
     {
-        "email": "spasat@spasat",
+        "email": "team@rescue-system.ru",
+        "legacy_emails": ["spasat@spasat"],
         "password": "spasat1",
         "role": "rescuer",
         "full_name": "Общий аккаунт спасателей",
@@ -52,10 +55,34 @@ def ensure_core_accounts() -> None:
 
         for raw_account in CORE_ACCOUNTS:
             account = raw_account.copy()
+            legacy_emails = [email for email in account.pop("legacy_emails", []) if email]
             password = account.pop("password")
 
-            cursor.execute("SELECT id FROM users WHERE email = %s", (account["email"],))
+            cursor.execute(
+                "SELECT id FROM users WHERE LOWER(email) = %s",
+                (account["email"].lower(),),
+            )
             result = cursor.fetchone()
+
+            if not result and legacy_emails:
+                for legacy in legacy_emails:
+                    cursor.execute(
+                        "SELECT id FROM users WHERE LOWER(email) = %s",
+                        (legacy.lower(),),
+                    )
+                    legacy_row = cursor.fetchone()
+                    if legacy_row:
+                        cursor.execute(
+                            "UPDATE users SET email = %s WHERE id = %s",
+                            (account["email"], legacy_row[0]),
+                        )
+                        conn.commit()
+                        print(
+                            f"✓ Обновлён legacy email {legacy} → {account['email']}"
+                        )
+                        result = legacy_row
+                        break
+
             if result:
                 print(f"✓ Учетная запись {account['email']} уже существует")
                 continue
