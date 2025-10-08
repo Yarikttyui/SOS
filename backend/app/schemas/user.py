@@ -56,7 +56,7 @@ class UserResponse(UserBase):
     team_name: Optional[str] = None
     is_team_leader: bool = False
     is_shared_account: bool = False
-    created_at: datetime
+    created_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
