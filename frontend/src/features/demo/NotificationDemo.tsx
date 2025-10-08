@@ -37,7 +37,7 @@ export default function NotificationDemo() {
           
           <button
             onClick={() => {
-              const id = notify.loading('Загрузка данных...');
+              notify.loading('Загрузка данных...');
               setTimeout(() => {
                 notify.success('Данные загружены!');
               }, 2000);
