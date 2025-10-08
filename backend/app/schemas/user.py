@@ -34,6 +34,7 @@ class UserUpdate(BaseModel):
     specialization: Optional[str] = None  # Changed from RescuerSpecialization enum to str
     team_id: Optional[str] = None
     is_team_leader: Optional[bool] = None
+    is_shared_account: Optional[bool] = None
 
 
 class UserResponse(UserBase):
@@ -46,6 +47,7 @@ class UserResponse(UserBase):
     team_id: Optional[str] = None
     team_name: Optional[str] = None
     is_team_leader: bool = False
+    is_shared_account: bool = False
     created_at: datetime
     
     class Config:

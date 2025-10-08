@@ -49,6 +49,8 @@ class RescueTeam(Base):
     equipment = Column(JSON)  # List of available equipment
     contact_phone = Column(String(20))
     contact_email = Column(String(255))
+
+    meta = Column(JSON)  # Presentation metadata (icon, summary, accent)
     
     base_latitude = Column(DECIMAL(10, 8))
     base_longitude = Column(DECIMAL(11, 8))

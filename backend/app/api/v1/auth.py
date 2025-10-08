@@ -43,6 +43,7 @@ def get_user_with_team(user: User, db: Session) -> dict:
         "team_id": user.team_id,
         "team_name": team_name,
         "is_team_leader": user.is_team_leader,
+        "is_shared_account": user.is_shared_account,
         "is_active": user.is_active,
         "is_verified": user.is_verified,
         "created_at": user.created_at.isoformat() if user.created_at else None

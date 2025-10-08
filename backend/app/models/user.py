@@ -45,6 +45,7 @@ class User(Base):
     specialization = Column(String(50), nullable=True)  # Simplified: use String instead of Enum
     team_id = Column(String(36), nullable=True)  # ID бригады
     is_team_leader = Column(Boolean, default=False)  # Лидер бригады
+    is_shared_account = Column(Boolean, default=False)
     
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)

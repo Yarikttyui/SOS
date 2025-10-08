@@ -52,7 +52,8 @@ async def create_team(
         base_address=team_data.base_address,
         capacity=team_data.capacity,
         specialization=team_data.specialization,
-        members=[]
+        members=[],
+        meta=team_data.meta
     )
     
     db.add(new_team)
@@ -94,6 +95,7 @@ async def create_team(
         "member_count": len(new_team.members) if new_team.members else 0,
         "contact_phone": new_team.contact_phone,
         "contact_email": new_team.contact_email,
+        "meta": new_team.meta,
         "created_at": new_team.created_at,
         "updated_at": new_team.updated_at
     }
@@ -146,6 +148,7 @@ async def get_teams(
             "member_count": len(team.members) if team.members else 0,
             "contact_phone": team.contact_phone,
             "contact_email": team.contact_email,
+            "meta": team.meta,
             "created_at": team.created_at,
             "updated_at": team.updated_at
         }
@@ -196,6 +199,7 @@ async def get_team(
         "member_count": len(team.members) if team.members else 0,
         "contact_phone": team.contact_phone,
         "contact_email": team.contact_email,
+        "meta": team.meta,
         "created_at": team.created_at,
         "updated_at": team.updated_at
     }
@@ -275,6 +279,9 @@ async def update_team(
         team.members = members_list
     elif team_update.members:
         team.members = team_update.members
+
+    if team_update.meta is not None:
+        team.meta = team_update.meta
     
     db.commit()
     db.refresh(team)
@@ -298,6 +305,7 @@ async def update_team(
         "member_count": len(team.members) if team.members else 0,
         "contact_phone": team.contact_phone,
         "contact_email": team.contact_email,
+        "meta": team.meta,
         "created_at": team.created_at,
         "updated_at": team.updated_at
     }

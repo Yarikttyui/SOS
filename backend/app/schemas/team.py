@@ -1,8 +1,6 @@
-"""
-Rescue Team schemas
-"""
+"""Rescue Team schemas"""
 from pydantic import BaseModel
-from typing import Optional, List, Union, Any
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
 
@@ -15,6 +13,7 @@ class RescueTeamBase(BaseModel):
     type: TeamType
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
 
 
 class RescueTeamCreate(RescueTeamBase):
@@ -38,6 +37,7 @@ class RescueTeamUpdate(BaseModel):
     equipment: Optional[List[Any]] = None  # Может быть список строк или dict
     member_ids: Optional[List[str]] = None  # Update team members
     leader_id: Optional[str] = None  # Update team leader
+    meta: Optional[Dict[str, Any]] = None
 
 
 class RescueTeamResponse(RescueTeamBase):
@@ -56,8 +56,9 @@ class RescueTeamResponse(RescueTeamBase):
     leader_id: Optional[str] = None  # Team leader user ID
     leader_name: Optional[str] = None  # Team leader name
     member_count: Optional[int] = 0  # Number of team members
+    meta: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
