@@ -83,6 +83,7 @@ fun LoginScreen(
                         onValueChange = onEmailChange,
                         label = { Text(stringResource(id = R.string.login_email_label)) },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         colors = textFieldColors()
                     )
                     OutlinedTextField(
@@ -93,6 +94,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         colors = textFieldColors()
                     )
 
@@ -104,6 +106,7 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 8.dp),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                             colors = textFieldColors()
                         )
                         OutlinedTextField(
@@ -114,6 +117,7 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 8.dp),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                             colors = textFieldColors()
                         )
                     }
@@ -166,5 +170,13 @@ private fun textFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.color
     disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
     errorBorderColor = MaterialTheme.colorScheme.error,
     cursorColor = MaterialTheme.colorScheme.primary,
-    errorCursorColor = MaterialTheme.colorScheme.error
+    errorCursorColor = MaterialTheme.colorScheme.error,
+    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+    errorPlaceholderColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+    focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+    unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+    disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+    errorContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
 )
