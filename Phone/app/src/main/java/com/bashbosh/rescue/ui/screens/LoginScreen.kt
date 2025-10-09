@@ -12,7 +12,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +28,6 @@ import com.bashbosh.rescue.ui.components.GlassCard
 import com.bashbosh.rescue.ui.components.PrimaryGradientButton
 import com.bashbosh.rescue.ui.components.RescueBackground
 import com.bashbosh.rescue.ui.theme.PrimaryRose
-import com.bashbosh.rescue.ui.theme.SurfaceLight
 
 @Composable
 fun LoginScreen(
@@ -68,7 +69,7 @@ fun LoginScreen(
             Text(
                 text = stringResource(id = R.string.login_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
-                color = SurfaceLight.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f)
             )
 
             GlassCard(
@@ -81,7 +82,8 @@ fun LoginScreen(
                         value = email,
                         onValueChange = onEmailChange,
                         label = { Text(stringResource(id = R.string.login_email_label)) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors()
                     )
                     OutlinedTextField(
                         value = password,
@@ -90,7 +92,8 @@ fun LoginScreen(
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp)
+                            .padding(top = 8.dp),
+                        colors = textFieldColors()
                     )
 
                     if (isRegisterMode) {
@@ -100,7 +103,8 @@ fun LoginScreen(
                             label = { Text(stringResource(id = R.string.login_fullname_label)) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp)
+                                .padding(top = 8.dp),
+                            colors = textFieldColors()
                         )
                         OutlinedTextField(
                             value = phone,
@@ -109,7 +113,8 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp)
+                                .padding(top = 8.dp),
+                            colors = textFieldColors()
                         )
                     }
 
@@ -146,3 +151,20 @@ fun LoginScreen(
         }
     }
 }
+
+@Composable
+private fun textFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+    disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+    errorLabelColor = MaterialTheme.colorScheme.error,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+    errorBorderColor = MaterialTheme.colorScheme.error,
+    cursorColor = MaterialTheme.colorScheme.primary,
+    errorCursorColor = MaterialTheme.colorScheme.error
+)
