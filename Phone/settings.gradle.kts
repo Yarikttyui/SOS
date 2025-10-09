@@ -19,6 +19,14 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "My Application"
-include(":app")
+rootProject.name = "SOS Mobile"
+
+include(
+    ":app",
+    ":core:common",
+    ":core:designsystem",
+    ":domain",
+    ":data:network",
+    ":data:local"
+)
  

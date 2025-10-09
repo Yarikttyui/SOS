@@ -1,32 +1,30 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
     namespace = "com.bashbosh.rescue"
     compileSdk = 35
 
-    val apiBaseUrl = (project.findProperty("API_BASE_URL") as String?) ?: "http://10.0.2.2:8000"
-    val wsBaseUrl = (project.findProperty("WS_BASE_URL") as String?) ?: "ws://10.0.2.2:8000"
-    val apiFallbackUrl = (project.findProperty("API_FALLBACK_URL") as String?) ?: ""
-    val wsFallbackUrl = (project.findProperty("WS_FALLBACK_URL") as String?) ?: ""
-    val versionNameProp = (project.findProperty("VERSION_NAME") as String?) ?: "1.0"
-    val versionCodeProp = (project.findProperty("VERSION_CODE") as String?)?.toIntOrNull() ?: 1
+    val apiBaseUrl = (project.findProperty("API_BASE_URL") as String?) ?: "https://api.bashbosh.ru"
+    val wsBaseUrl = (project.findProperty("WS_BASE_URL") as String?) ?: "wss://api.bashbosh.ru"
+    val versionNameProp = (project.findProperty("VERSION_NAME") as String?) ?: "2.0.0-alpha01"
+    val versionCodeProp = (project.findProperty("VERSION_CODE") as String?)?.toIntOrNull() ?: 20001
 
     defaultConfig {
-    applicationId = "com.bashbosh.rescue"
+        applicationId = "com.bashbosh.rescue"
         minSdk = 24
         targetSdk = 35
         versionCode = versionCodeProp
         versionName = versionNameProp
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "WS_BASE_URL", "\"$wsBaseUrl\"")
-        buildConfigField("String", "API_FALLBACK_URL", "\"${apiFallbackUrl.trim()}\"")
-        buildConfigField("String", "WS_FALLBACK_URL", "\"${wsFallbackUrl.trim()}\"")
     }
 
     signingConfigs {
@@ -42,8 +40,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -51,28 +55,46 @@ android {
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
-    }
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.11"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
+    sourceSets {
+        getByName("main").java.setSrcDirs(listOf("src/main/kotlin"))
+        getByName("test").java.setSrcDirs(listOf("src/test/kotlin"))
+        getByName("androidTest").java.setSrcDirs(listOf("src/androidTest/kotlin"))
+    }
 }
 
 dependencies {
+    implementation(project(":core:common"))
+    implementation(project(":core:designsystem"))
+    implementation(project(":domain"))
+    implementation(project(":data:network"))
+    implementation(project(":data:local"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -80,40 +102,19 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.foundation:foundation-layout")
-    implementation("androidx.fragment:fragment-ktx:1.8.5")
-    implementation("androidx.core:core-splashscreen:1.0.1")
-    
-    // Navigation
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-    
-    // Networking
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    
-    // DataStore for preferences
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.material.icons)
+    implementation(libs.androidx.hilt.navigation.compose)
 
-    // WorkManager for notification scheduling
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
-    
-    // Google Maps
-    implementation("com.google.maps.android:maps-compose:4.3.3")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.android.gms:play-services-location:21.1.0")
-    
-    // Media Player для звуков
-    implementation("androidx.media:media:1.7.0")
-    
-    // Icons
-    implementation("androidx.compose.material:material-icons-extended:1.6.3")
-    
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.datastore.preferences)
+
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+
+    implementation(libs.timber)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
