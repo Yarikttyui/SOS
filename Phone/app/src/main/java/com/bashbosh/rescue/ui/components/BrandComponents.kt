@@ -1,14 +1,15 @@
 package com.bashbosh.rescue.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -24,20 +25,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.bashbosh.rescue.ui.theme.AccentMagenta
-import com.bashbosh.rescue.ui.theme.AccentSunrise
+import com.bashbosh.rescue.ui.theme.AccentAmber
+import com.bashbosh.rescue.ui.theme.AccentEmerald
+import com.bashbosh.rescue.ui.theme.AccentSky
+import com.bashbosh.rescue.ui.theme.AccentViolet
+import com.bashbosh.rescue.ui.theme.MidnightBlue
 import com.bashbosh.rescue.ui.theme.PrimaryRose
-import com.bashbosh.rescue.ui.theme.SecondaryIndigo
-import com.bashbosh.rescue.ui.theme.SurfaceLight
+import com.bashbosh.rescue.ui.theme.SlateNight
+import com.bashbosh.rescue.ui.theme.TextOnPrimary
 
 @Composable
 fun RescueBackground(
     modifier: Modifier = Modifier,
-    topGlowColor: Color = PrimaryRose.copy(alpha = 0.2f),
-    sideGlowColor: Color = SecondaryIndigo.copy(alpha = 0.18f),
+    topGlowColor: Color = AccentAmber.copy(alpha = 0.25f),
+    sideGlowColor: Color = AccentViolet.copy(alpha = 0.22f),
     content: @Composable BoxScope.() -> Unit
 ) {
-    Box(modifier = modifier.background(SurfaceLight)) {
+    Box(
+        modifier = modifier.background(
+            brush = Brush.verticalGradient(
+                colors = listOf(MidnightBlue, SlateNight)
+            )
+        )
+    ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
             val height = size.height
@@ -69,14 +79,35 @@ fun GlassCard(
     cornerRadius: Dp = 28.dp,
     content: @Composable () -> Unit
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(cornerRadius),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.92f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
+    Box(
+        modifier = modifier
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.18f), Color.White.copy(alpha = 0.06f))
+                ),
+                shape = RoundedCornerShape(cornerRadius)
+            )
+            .border(
+                BorderStroke(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.55f),
+                            Color.White.copy(alpha = 0.2f)
+                        )
+                    )
+                ),
+                shape = RoundedCornerShape(cornerRadius)
+            )
     ) {
-        Box(modifier = Modifier.background(Color.White.copy(alpha = 0.85f))) {
+        Card(
+            modifier = Modifier
+                .padding(1.5.dp)
+                .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(cornerRadius - 2.dp)),
+            shape = RoundedCornerShape(cornerRadius - 2.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.92f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+        ) {
             content()
         }
     }
@@ -103,12 +134,12 @@ fun PrimaryGradientButton(
         contentPadding = PaddingValues(0.dp)
     ) {
         val gradientColors = if (enabled) {
-            listOf(PrimaryRose, AccentSunrise, AccentMagenta)
+            listOf(PrimaryRose, AccentAmber, AccentViolet)
         } else {
             listOf(
                 PrimaryRose.copy(alpha = 0.4f),
-                AccentSunrise.copy(alpha = 0.4f),
-                AccentMagenta.copy(alpha = 0.4f)
+                AccentAmber.copy(alpha = 0.4f),
+                AccentViolet.copy(alpha = 0.4f)
             )
         }
         Box(
@@ -120,7 +151,7 @@ fun PrimaryGradientButton(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            val contentColor = if (enabled) Color.White else Color.White.copy(alpha = 0.7f)
+            val contentColor = if (enabled) TextOnPrimary else TextOnPrimary.copy(alpha = 0.7f)
             Text(
                 text = text,
                 style = MaterialTheme.typography.titleMedium,

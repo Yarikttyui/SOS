@@ -43,7 +43,6 @@ import com.bashbosh.rescue.ui.components.GlassCard
 import com.bashbosh.rescue.ui.components.PrimaryGradientButton
 import com.bashbosh.rescue.ui.components.RescueBackground
 import com.bashbosh.rescue.ui.theme.PrimaryRose
-import com.bashbosh.rescue.ui.theme.SecondaryIndigo
 
 @Composable
 fun DashboardScreen(
@@ -133,7 +132,7 @@ private fun DashboardHeader(
                 Icon(
                     imageVector = Icons.Outlined.Notifications,
                     contentDescription = null,
-                    tint = SecondaryIndigo,
+                    tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier
                         .clickable(onClick = onOpenNotifications)
                         .padding(8.dp)
@@ -186,7 +185,7 @@ private fun AlertFilters(
 @Composable
 private fun LoadingView(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = SecondaryIndigo)
+    CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
     }
 }
 
@@ -297,7 +296,7 @@ private fun AlertCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(id = R.string.alert_card_status, alert.status.raw.uppercase()),
-                color = SecondaryIndigo,
+                color = MaterialTheme.colorScheme.secondary,
                 style = MaterialTheme.typography.labelLarge
             )
             alert.address?.let {

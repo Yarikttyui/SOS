@@ -29,7 +29,6 @@ import com.bashbosh.rescue.ui.components.GlassCard
 import com.bashbosh.rescue.ui.components.PrimaryGradientButton
 import com.bashbosh.rescue.ui.components.RescueBackground
 import com.bashbosh.rescue.ui.theme.PrimaryRose
-import com.bashbosh.rescue.ui.theme.SecondaryIndigo
 
 @Composable
 fun NotificationsScreen(
@@ -96,7 +95,7 @@ private fun NotificationsHeader(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_back),
                         contentDescription = null,
-                        tint = SecondaryIndigo
+                        tint = MaterialTheme.colorScheme.secondary
                     )
                 }
                 Text(
@@ -108,7 +107,7 @@ private fun NotificationsHeader(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_refresh),
                         contentDescription = null,
-                        tint = SecondaryIndigo
+                        tint = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
@@ -128,7 +127,7 @@ private fun NotificationsLoadingView(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        CircularProgressIndicator(color = SecondaryIndigo)
+    CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
     }
 }
 

@@ -9,31 +9,36 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme: ColorScheme = darkColorScheme(
     primary = PrimaryRose,
     onPrimary = TextOnPrimary,
-    secondary = SecondaryIndigo,
+    secondary = AccentAmber,
     onSecondary = TextOnPrimary,
-    tertiary = AccentMagenta,
-    background = DarkSlate,
-    onBackground = Color(0xFFE2E8F0),
-    surface = Color(0xFF111B2E),
-    onSurface = Color(0xFFF8FAFC)
+    tertiary = AccentViolet,
+    background = MidnightBlue,
+    onBackground = OnDark,
+    surface = SlateNight,
+    onSurface = OnDark,
+    surfaceVariant = SlateNight.copy(alpha = 0.85f),
+    onSurfaceVariant = OnDark,
+    outline = OutlineSoft.copy(alpha = 0.4f)
 )
 
 private val LightColorScheme: ColorScheme = lightColorScheme(
     primary = PrimaryRose,
     onPrimary = TextOnPrimary,
-    secondary = SecondaryIndigo,
+    secondary = AccentAmber,
     onSecondary = TextOnPrimary,
-    tertiary = AccentMagenta,
-    background = SurfaceLight,
-    onBackground = Color(0xFF0F172A),
-    surface = Color.White,
-    onSurface = Color(0xFF0F172A)
+    tertiary = AccentViolet,
+    background = CardLight,
+    onBackground = OnCard,
+    surface = CardTint,
+    onSurface = OnCard,
+    surfaceVariant = CardLight,
+    onSurfaceVariant = OnCard,
+    outline = OutlineSoft
 )
 
 @Composable

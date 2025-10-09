@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import com.bashbosh.rescue.R
 import com.bashbosh.rescue.ui.components.RescueBackground
 import com.bashbosh.rescue.ui.theme.PrimaryRose
-import com.bashbosh.rescue.ui.theme.SecondaryIndigo
 
 @Composable
 fun SplashScreen() {
@@ -43,7 +42,7 @@ fun SplashScreen() {
             Spacer(modifier = Modifier.height(32.dp))
             CircularProgressIndicator(
                 modifier = Modifier.size(48.dp),
-                color = SecondaryIndigo
+                color = MaterialTheme.colorScheme.secondary
             )
         }
     }

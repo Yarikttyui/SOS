@@ -34,7 +34,6 @@ import com.bashbosh.rescue.ui.components.GlassCard
 import com.bashbosh.rescue.ui.components.PrimaryGradientButton
 import com.bashbosh.rescue.ui.components.RescueBackground
 import com.bashbosh.rescue.ui.theme.PrimaryRose
-import com.bashbosh.rescue.ui.theme.SecondaryIndigo
 
 @Composable
 fun AlertDetailScreen(
@@ -55,7 +54,7 @@ fun AlertDetailScreen(
 @Composable
 private fun LoadingState(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = SecondaryIndigo)
+    CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
     }
 }
 
@@ -120,7 +119,7 @@ private fun LoadedState(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_back),
                         contentDescription = null,
-                        tint = SecondaryIndigo
+                        tint = MaterialTheme.colorScheme.secondary
                     )
                 }
                 Text(
@@ -141,7 +140,7 @@ private fun LoadedState(
                 Text(
                     text = stringResource(id = R.string.alert_detail_status, alert.status.raw.uppercase()),
                     style = MaterialTheme.typography.titleMedium,
-                    color = SecondaryIndigo,
+                    color = MaterialTheme.colorScheme.secondary,
                     fontWeight = FontWeight.Bold
                 )
                 Text(text = stringResource(id = R.string.alert_detail_description, alert.description ?: stringResource(id = R.string.alert_card_description_fallback)))

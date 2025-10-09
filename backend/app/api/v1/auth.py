@@ -5,7 +5,6 @@ import re
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -101,7 +100,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     Admins can later change roles through user management.
     """
     normalized_email = _normalize_email(user_data.email)
-    existing_user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
+    existing_user = db.query(User).filter(User.email == normalized_email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -161,7 +160,7 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     Returns access and refresh tokens
     """
     normalized_email = _normalize_email(login_data.email)
-    user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
+    user = db.query(User).filter(User.email == normalized_email).first()
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -194,7 +193,7 @@ async def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
     Returns access and refresh tokens
     """
     normalized_email = _normalize_email(form_data.username)
-    user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
+    user = db.query(User).filter(User.email == normalized_email).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
